@@ -296,9 +296,10 @@ class _Chips<T> extends StatelessWidget {
           return ChoiceChip(
             selected: value == selected,
             onSelected: (_) => onTap(value),
-            avatar: swatch == null
-                ? null
-                : CircleAvatar(backgroundColor: swatch!(value), radius: 8),
+            avatar:
+                swatch == null
+                    ? null
+                    : CircleAvatar(backgroundColor: swatch!(value), radius: 8),
             label: Text(label(value)),
           );
         },

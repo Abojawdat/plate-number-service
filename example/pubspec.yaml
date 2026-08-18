@@ -1,5 +1,5 @@
-name: number_iraqi_plate_package_example
-description: Example app for the number_iraqi_plate_package package.
+name: iraqi_license_plate_example
+description: Example app for the iraqi_license_plate package.
 publish_to: 'none'
 version: 1.0.0
 
@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  number_iraqi_plate_package:
+  iraqi_license_plate:
     path: ../
 
 dev_dependencies:

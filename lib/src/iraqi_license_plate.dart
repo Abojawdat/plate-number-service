@@ -114,9 +114,10 @@ class IraqiLicensePlate extends StatelessWidget {
     if (tiltDegrees != 0) {
       rendered = Transform(
         alignment: Alignment.center,
-        transform: Matrix4.identity()
-          ..setEntry(3, 2, 0.0014)
-          ..rotateY(tiltDegrees * math.pi / 180),
+        transform:
+            Matrix4.identity()
+              ..setEntry(3, 2, 0.0014)
+              ..rotateY(tiltDegrees * math.pi / 180),
         child: rendered,
       );
     }
@@ -402,9 +403,10 @@ class _PlatePainter extends CustomPainter {
         ),
       );
     });
-    final light = plate.category.isDarkField
-        ? Colors.white.withValues(alpha: 0.10)
-        : Colors.white.withValues(alpha: 0.55);
+    final light =
+        plate.category.isDarkField
+            ? Colors.white.withValues(alpha: 0.10)
+            : Colors.white.withValues(alpha: 0.55);
     final dark = Colors.black.withValues(alpha: 0.05);
     canvas.drawPoints(
       ui.PointMode.points,
@@ -434,9 +436,10 @@ class _PlatePainter extends CustomPainter {
   /// is what distinguishes bare aluminium from the bead-blasted front.
   void _paintBrushing(Canvas canvas, Rect rect) {
     final random = math.Random(7717);
-    final paint = Paint()
-      ..strokeWidth = 0.35
-      ..strokeCap = StrokeCap.round;
+    final paint =
+        Paint()
+          ..strokeWidth = 0.35
+          ..strokeCap = StrokeCap.round;
     for (var i = 0; i < 220; i++) {
       final y = random.nextDouble() * rect.height;
       final x0 = random.nextDouble() * rect.width * 0.5;
@@ -491,26 +494,33 @@ class _PlatePainter extends CustomPainter {
     var row = 0;
     for (var y = fieldRect.top - 4; y < fieldRect.bottom; y += rowStep) {
       final offset = (row.isEven ? 0.0 : -line.width / 3);
-      for (var x = fieldRect.left + offset; x < fieldRect.right; x += line.width) {
+      for (
+        var x = fieldRect.left + offset;
+        x < fieldRect.right;
+        x += line.width
+      ) {
         line.paint(canvas, Offset(x, y));
       }
       row++;
     }
 
     // Repeated map of Iraq, ghosted into the sheeting in neutral grey.
-    final mapGrey = plate.category.isDarkField
-        ? const Color(0xFFB9C0C7)
-        : const Color(0xFF6E767F);
-    final mapFill = Paint()
-      ..color = mapGrey.withValues(alpha: inkAlpha * 2.2)
-      ..style = PaintingStyle.fill
-      ..isAntiAlias = true;
-    final mapEdge = Paint()
-      ..color = mapGrey.withValues(alpha: inkAlpha * 3.4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.45
-      ..strokeJoin = StrokeJoin.round
-      ..isAntiAlias = true;
+    final mapGrey =
+        plate.category.isDarkField
+            ? const Color(0xFFB9C0C7)
+            : const Color(0xFF6E767F);
+    final mapFill =
+        Paint()
+          ..color = mapGrey.withValues(alpha: inkAlpha * 2.2)
+          ..style = PaintingStyle.fill
+          ..isAntiAlias = true;
+    final mapEdge =
+        Paint()
+          ..color = mapGrey.withValues(alpha: inkAlpha * 3.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.45
+          ..strokeJoin = StrokeJoin.round
+          ..isAntiAlias = true;
     const mapSize = 18.0;
     for (var y = fieldRect.top + 5; y < fieldRect.bottom; y += 46) {
       for (var x = fieldRect.left + 10; x < fieldRect.right; x += 62) {
@@ -521,11 +531,12 @@ class _PlatePainter extends CustomPainter {
     }
 
     // Guilloche across the lower third.
-    final wave = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.55
-      ..color = (plate.category.isDarkField ? Colors.white : Colors.black)
-          .withValues(alpha: inkAlpha);
+    final wave =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.55
+          ..color = (plate.category.isDarkField ? Colors.white : Colors.black)
+              .withValues(alpha: inkAlpha);
     for (var i = 0; i < 3; i++) {
       final path = Path();
       final baseY = fieldRect.bottom - 12 + i * 3.4;
@@ -598,11 +609,7 @@ class _PlatePainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            _lighten(base, 0.24),
-            base,
-            _darken(base, 0.14),
-          ],
+          colors: [_lighten(base, 0.24), base, _darken(base, 0.14)],
           stops: const [0, 0.45, 1],
         ).createShader(rect),
     );
@@ -614,12 +621,7 @@ class _PlatePainter extends CustomPainter {
   RRect get _frameInnerRRect {
     final inset = spec.frameInset + spec.frameStroke * 0.5;
     return RRect.fromRectXY(
-      Rect.fromLTRB(
-        inset,
-        inset,
-        spec.widthMm - inset,
-        spec.heightMm - inset,
-      ),
+      Rect.fromLTRB(inset, inset, spec.widthMm - inset, spec.heightMm - inset),
       spec.frameRadius,
       spec.frameRadius,
     );
@@ -653,24 +655,28 @@ class _PlatePainter extends CustomPainter {
   /// The raised black frame line, plus the divider between band and field.
   void _paintFrame(Canvas canvas) {
     final inset = spec.frameInset + spec.frameStroke / 2;
-    final frame = Path()
-      ..addRRect(
-        RRect.fromRectXY(
-          Rect.fromLTRB(
-            inset,
-            inset,
-            spec.widthMm - inset,
-            spec.heightMm - inset,
+    final frame =
+        Path()..addRRect(
+          RRect.fromRectXY(
+            Rect.fromLTRB(
+              inset,
+              inset,
+              spec.widthMm - inset,
+              spec.heightMm - inset,
+            ),
+            spec.frameRadius,
+            spec.frameRadius,
           ),
-          spec.frameRadius,
-          spec.frameRadius,
-        ),
-      );
+        );
     _emboss(canvas, frame, spec.frameStroke, _frameInk, depthScale: 0.55);
 
-    final divider = Path()
-      ..moveTo(spec.bandRight, spec.frameInset + spec.frameStroke)
-      ..lineTo(spec.bandRight, spec.heightMm - spec.frameInset - spec.frameStroke);
+    final divider =
+        Path()
+          ..moveTo(spec.bandRight, spec.frameInset + spec.frameStroke)
+          ..lineTo(
+            spec.bandRight,
+            spec.heightMm - spec.frameInset - spec.frameStroke,
+          );
     _emboss(canvas, divider, spec.frameStroke, _frameInk, depthScale: 0.55);
   }
 
@@ -687,9 +693,12 @@ class _PlatePainter extends CustomPainter {
     final letters = text.split('');
     final ys = spec.bandLetterYsFor(letters.length);
     final scale = spec.bandCap / PlateTypeface.cap;
-    final ink = _isBack
-        ? _darken(_backMetal, 0.10)
-        : (_bandIsTinted ? plate.category.bandInk : plate.category.fieldInk);
+    final ink =
+        _isBack
+            ? _darken(_backMetal, 0.10)
+            : (_bandIsTinted
+                ? plate.category.bandInk
+                : plate.category.fieldInk);
 
     for (var i = 0; i < letters.length; i++) {
       final glyph = PlateTypeface.glyph(letters[i]);
@@ -865,12 +874,7 @@ class _PlatePainter extends CustomPainter {
       direction: TextDirection.rtl,
     );
 
-    _embossText(
-      canvas,
-      letter,
-      Offset(spec.contentLeft - 6, rowTop),
-      ink,
-    );
+    _embossText(canvas, letter, Offset(spec.contentLeft - 6, rowTop), ink);
     _embossText(
       canvas,
       serial,
@@ -896,8 +900,13 @@ class _PlatePainter extends CustomPainter {
       direction: TextDirection.rtl,
     );
     const stripY = 118.0;
-    _embossText(canvas, category, Offset(spec.contentLeft - 6, stripY), ink,
-        depthScale: 0.45);
+    _embossText(
+      canvas,
+      category,
+      Offset(spec.contentLeft - 6, stripY),
+      ink,
+      depthScale: 0.45,
+    );
     _embossText(
       canvas,
       governorate,
@@ -993,13 +1002,14 @@ class _PlatePainter extends CustomPainter {
     final d = _depth * depthScale;
     final ground = surface ?? _ground;
 
-    Paint stroked() => Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt
-      ..strokeJoin = StrokeJoin.round
-      ..strokeMiterLimit = 2
-      ..isAntiAlias = true;
+    Paint stroked() =>
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.butt
+          ..strokeJoin = StrokeJoin.round
+          ..strokeMiterLimit = 2
+          ..isAntiAlias = true;
 
     //! On the reverse the relief is the same stamping seen from behind, so it
     //! is concave: every offset flips sign and the lit wall swaps to the

@@ -333,10 +333,9 @@ class IraqiPlate {
     PlateCategory category = PlateCategory.private,
     PlateFormat format = PlateFormat.modernShort,
   }) {
-    final cleaned = fromArabicDigits(input).toUpperCase().replaceAll(
-      RegExp(r'[\s\-_/]'),
-      '',
-    );
+    final cleaned = fromArabicDigits(
+      input,
+    ).toUpperCase().replaceAll(RegExp(r'[\s\-_/]'), '');
     final match = RegExp(r'^(\d{2})([A-Z])(\d{1,5})$').firstMatch(cleaned);
     if (match == null) return null;
     final governorate = IraqGovernorate.fromCode(int.parse(match.group(1)!));

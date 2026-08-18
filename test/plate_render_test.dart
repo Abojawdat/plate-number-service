@@ -18,7 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:number_iraqi_plate_package/number_iraqi_plate_package.dart';
+import 'package:iraqi_license_plate/iraqi_license_plate.dart';
 
 String get _outDir => Platform.environment['PLATE_RENDER_OUT'] ?? 'render';
 
@@ -65,61 +65,71 @@ void main() {
     await _loadFont();
   });
 
-  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '01 front and back', (tester) async {
-    tester.view.physicalSize = const Size(2600, 2600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await _shoot(
-      tester,
-      '01_front_and_back',
-      Container(
-        color: const Color(0xFF2B3242),
-        padding: const EdgeInsets.all(36),
-        child: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IraqiLicensePlate(plate: IraqiPlate.reference, width: 820),
-            SizedBox(height: 30),
-            // the concave, unpainted reverse
-            IraqiLicensePlate(
-              plate: IraqiPlate.reference,
-              width: 620,
-              face: PlateFace.back,
-            ),
-          ],
-        ),
-      ),
-    );
-  });
-
-  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '02 every category', (tester) async {
-    tester.view.physicalSize = const Size(2200, 4200);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await _shoot(
-      tester,
-      '02_categories',
-      Container(
-        color: const Color(0xFFEBEEF5),
-        padding: const EdgeInsets.all(26),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final category in PlateCategory.values)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: IraqiLicensePlate(
-                  plate: IraqiPlate.reference.copyWith(category: category),
-                  width: 300,
-                ),
+  testWidgets(
+    timeout: const Timeout(Duration(minutes: 4)),
+    '01 front and back',
+    (tester) async {
+      tester.view.physicalSize = const Size(2600, 2600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _shoot(
+        tester,
+        '01_front_and_back',
+        Container(
+          color: const Color(0xFF2B3242),
+          padding: const EdgeInsets.all(36),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IraqiLicensePlate(plate: IraqiPlate.reference, width: 820),
+              SizedBox(height: 30),
+              // the concave, unpainted reverse
+              IraqiLicensePlate(
+                plate: IraqiPlate.reference,
+                width: 620,
+                face: PlateFace.back,
               ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  });
+      );
+    },
+  );
 
-  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '03 every format', (tester) async {
+  testWidgets(
+    timeout: const Timeout(Duration(minutes: 4)),
+    '02 every category',
+    (tester) async {
+      tester.view.physicalSize = const Size(2200, 4200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _shoot(
+        tester,
+        '02_categories',
+        Container(
+          color: const Color(0xFFEBEEF5),
+          padding: const EdgeInsets.all(26),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final category in PlateCategory.values)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: IraqiLicensePlate(
+                    plate: IraqiPlate.reference.copyWith(category: category),
+                    width: 300,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+
+  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '03 every format', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2200, 2600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -135,10 +145,7 @@ void main() {
             // car
             const Padding(
               padding: EdgeInsets.only(bottom: 16),
-              child: IraqiLicensePlate(
-                plate: IraqiPlate.reference,
-                width: 340,
-              ),
+              child: IraqiLicensePlate(plate: IraqiPlate.reference, width: 340),
             ),
             // European blank
             Padding(
@@ -187,7 +194,9 @@ void main() {
     );
   });
 
-  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '04 size ladder', (tester) async {
+  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '04 size ladder', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1400, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -213,7 +222,9 @@ void main() {
     );
   });
 
-  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '05 typeface', (tester) async {
+  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '05 typeface', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(2400, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -240,18 +251,20 @@ class _GlyphSheetPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = Colors.white);
     const scale = 0.9;
-    final ink = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = PlateTypeface.stroke * scale
-      ..strokeCap = StrokeCap.butt
-      ..strokeJoin = StrokeJoin.round
-      ..strokeMiterLimit = 2
-      ..color = const Color(0xFF101214)
-      ..isAntiAlias = true;
-    final box = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = const Color(0x33FF0000);
+    final ink =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = PlateTypeface.stroke * scale
+          ..strokeCap = StrokeCap.butt
+          ..strokeJoin = StrokeJoin.round
+          ..strokeMiterLimit = 2
+          ..color = const Color(0xFF101214)
+          ..isAntiAlias = true;
+    final box =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = const Color(0x33FF0000);
 
     var y = 10.0;
     for (final row in _rows) {

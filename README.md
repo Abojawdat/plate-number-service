@@ -1,4 +1,4 @@
-# number_iraqi_plate_package
+# iraqi_license_plate
 
 Photoreal Iraqi vehicle registration plates for Flutter — cars, motorcycles, the
 European blank and the legacy Arabic blank — with the full governorate,
@@ -16,7 +16,7 @@ Copy this folder next to your app and add a path dependency:
 
 ```yaml
 dependencies:
-  number_iraqi_plate_package:
+  iraqi_license_plate:
     path: ../plate number service
 ```
 
@@ -24,7 +24,7 @@ Or point at a git remote once you have pushed it:
 
 ```yaml
 dependencies:
-  number_iraqi_plate_package:
+  iraqi_license_plate:
     git:
       url: https://github.com/<you>/iraqi-plate-service.git
 ```
@@ -32,7 +32,7 @@ dependencies:
 Then:
 
 ```dart
-import 'package:number_iraqi_plate_package/number_iraqi_plate_package.dart';
+import 'package:iraqi_license_plate/iraqi_license_plate.dart';
 ```
 
 ---

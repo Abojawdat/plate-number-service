@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:number_iraqi_plate_package/number_iraqi_plate_package.dart';
+import 'package:iraqi_license_plate/iraqi_license_plate.dart';
 
 void main() => runApp(const ExampleApp());
 

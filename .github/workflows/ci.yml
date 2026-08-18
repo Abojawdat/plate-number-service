@@ -36,7 +36,16 @@ jobs:
         run: flutter test
 
       - name: Check the package is publishable
-        run: dart pub publish --dry-run
+        run: |
+          # The Flutter SDK on the runner rewrites analysis_options.yaml and
+          # example/analysis_options.yaml during setup. pub then refuses to
+          # publish from what it sees as a dirty working tree and exits 65,
+          # even though nothing about the package is actually wrong.
+          #
+          # Restoring the tree first means the check runs against exactly what
+          # is committed, which is what would be published anyway.
+          git checkout -- .
+          dart pub publish --dry-run
 
   pana:
     name: pub.dev score

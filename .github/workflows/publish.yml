@@ -50,4 +50,10 @@ jobs:
         run: flutter test
 
       - name: Publish
-        run: dart pub publish --force
+        run: |
+          # Same reason as the CI workflow: the runner's Flutter SDK rewrites
+          # the analysis_options.yaml files during setup, and pub refuses to
+          # publish from a tree it considers dirty. Restore them so the tag is
+          # published exactly as committed.
+          git checkout -- .
+          dart pub publish --force

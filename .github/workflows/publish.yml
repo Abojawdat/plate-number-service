@@ -34,6 +34,7 @@ jobs:
       - run: flutter pub get
 
       - name: Check the tag matches pubspec version
+        id: version
         run: |
           tag="${GITHUB_REF_NAME#v}"
           pubspec=$(grep '^version:' pubspec.yaml | awk '{print $2}')
@@ -41,15 +42,35 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match pubspec version $pubspec."
             exit 1
           fi
-          echo "Publishing $pubspec."
+          echo "version=$pubspec" >> "$GITHUB_OUTPUT"
+
+      # A version on pub.dev can be retracted for seven days but never deleted,
+      # so re-publishing one is not something to discover halfway through. Ask
+      # pub.dev first and stop cleanly if this version is already up — which is
+      # exactly what happens when an already-published release gets tagged.
+      - name: Skip if this version is already published
+        id: published
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          if curl -sf "https://pub.dev/api/packages/iraqi_license_plate" \
+              | grep -q "\"version\":\"$version\""; then
+            echo "$version is already on pub.dev — nothing to do."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Publishing $version."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Analyse
+        if: steps.published.outputs.exists == 'false'
         run: flutter analyze --fatal-infos
 
       - name: Test
+        if: steps.published.outputs.exists == 'false'
         run: flutter test
 
       - name: Publish
+        if: steps.published.outputs.exists == 'false'
         run: |
           # Same reason as the CI workflow: the runner's Flutter SDK rewrites
           # the analysis_options.yaml files during setup, and pub refuses to

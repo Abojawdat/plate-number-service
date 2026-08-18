@@ -1,7 +1,12 @@
-// Visual harness: renders every plate variant to PNG files so they can be
-// eyeballed without booting a device or a simulator.
+// Image generator: renders every plate variant to PNG so the README and the
+// pub.dev listing have real pictures, without booting a device or simulator.
 //
-//   flutter test test/plate_render_test.dart
+//   flutter test tool/render_plates.dart
+//
+// It lives in tool/ rather than test/ on purpose. It asserts nothing about
+// appearance, so it is not a test — and keeping it out of test/ means
+// `flutter test` runs only the real suite, fast and green, for CI and for
+// anyone who forks the package.
 //
 // Writes to ./render by default. Override with PLATE_RENDER_OUT.
 // Point PLATE_RENDER_FONT at an Arabic .ttf to make the legacy blank and the
@@ -9,8 +14,8 @@
 // Arabic font, so without it they come out as empty boxes. The modern formats
 // are pure vector and need no font at all.
 //
-// This is not an assertion test. It never fails on appearance; it just writes
-// files for you to look at.
+// It asserts nothing about appearance; it just writes files for you to look
+// at, and at the pub.dev listing.
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -45,10 +50,24 @@ Future<void> _shoot(WidgetTester tester, String name, Widget child) async {
       key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   final image = await boundary.toImage(pixelRatio: _pixelRatio);
   final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+  //! Must be disposed. A leaked ui.Image keeps the headless test shell from
+  //! shutting down, which is what made this harness sit at 0% CPU until the
+  //! per-test timeout killed it — long after every PNG was already on disk.
+  image.dispose();
   Directory(_outDir).createSync(recursive: true);
   File('$_outDir/$name.png').writeAsBytesSync(bytes!.buffer.asUint8List());
-  // ignore: avoid_print
-  print('wrote $_outDir/$name.png');
+  stdout.writeln('wrote $_outDir/$name.png');
+
+  //! One shot per process, then leave.
+  //!
+  //! The first `toImage` in a `flutter test` process succeeds; every call
+  //! after it blocks forever at 0% CPU, with the PNG already written. That is
+  //! a flutter_tools problem, not a painter problem — a probe that only pumps
+  //! the widget, never touching toImage, completes instantly.
+  //!
+  //! So each run renders exactly one shot and exits here, before the wedge.
+  //! tool/render_all.sh drives the whole set, one process per plate.
+  exit(0);
 }
 
 Future<void> _loadFont() async {
@@ -65,74 +84,66 @@ void main() {
     await _loadFont();
   });
 
-  testWidgets(
-    timeout: const Timeout(Duration(minutes: 4)),
-    '01 front and back',
-    (tester) async {
-      tester.view.physicalSize = const Size(2600, 2600);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await _shoot(
-        tester,
-        '01_front_and_back',
-        Container(
-          color: const Color(0xFF2B3242),
-          padding: const EdgeInsets.all(36),
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IraqiLicensePlate(plate: IraqiPlate.reference, width: 820),
-              SizedBox(height: 30),
-              // the concave, unpainted reverse
-              IraqiLicensePlate(
-                plate: IraqiPlate.reference,
-                width: 620,
-                face: PlateFace.back,
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
+  //! Each shot is its own test so tool/render_all.sh can select one
+  //! with --plain-name. _shoot exits the process after writing.
+  testWidgets('01 front and back', timeout: Timeout.none, (tester) async {
+    tester.view.physicalSize = const Size(2600, 2600);
+    tester.view.devicePixelRatio = 1;
 
-  testWidgets(
-    timeout: const Timeout(Duration(minutes: 4)),
-    '02 every category',
-    (tester) async {
-      tester.view.physicalSize = const Size(2200, 4200);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await _shoot(
-        tester,
-        '02_categories',
-        Container(
-          color: const Color(0xFFEBEEF5),
-          padding: const EdgeInsets.all(26),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final category in PlateCategory.values)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: IraqiLicensePlate(
-                    plate: IraqiPlate.reference.copyWith(category: category),
-                    width: 300,
-                  ),
+    await _shoot(
+      tester,
+      '01_front_and_back',
+      Container(
+        color: const Color(0xFF2B3242),
+        padding: const EdgeInsets.all(36),
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IraqiLicensePlate(plate: IraqiPlate.reference, width: 820),
+            SizedBox(height: 30),
+            // the concave, unpainted reverse
+            IraqiLicensePlate(
+              plate: IraqiPlate.reference,
+              width: 620,
+              face: PlateFace.back,
+            ),
+          ],
+        ),
+      ),
+    );
+  });
+
+  testWidgets('02 every category', timeout: Timeout.none, (tester) async {
+    tester.view.physicalSize = const Size(2200, 4200);
+    tester.view.devicePixelRatio = 1;
+
+    await _shoot(
+      tester,
+      '02_categories',
+      Container(
+        color: const Color(0xFFEBEEF5),
+        padding: const EdgeInsets.all(26),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final category in PlateCategory.values)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: IraqiLicensePlate(
+                  plate: IraqiPlate.reference.copyWith(category: category),
+                  width: 300,
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
-      );
-    },
-  );
+      ),
+    );
+  });
 
-  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '03 every format', (
-    tester,
-  ) async {
+  testWidgets('03 every format', timeout: Timeout.none, (tester) async {
     tester.view.physicalSize = const Size(2200, 2600);
     tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+
     await _shoot(
       tester,
       '03_formats',
@@ -194,12 +205,10 @@ void main() {
     );
   });
 
-  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '04 size ladder', (
-    tester,
-  ) async {
+  testWidgets('04 size ladder', timeout: Timeout.none, (tester) async {
     tester.view.physicalSize = const Size(1400, 1400);
     tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+
     await _shoot(
       tester,
       '04_sizes',
@@ -222,12 +231,10 @@ void main() {
     );
   });
 
-  testWidgets(timeout: const Timeout(Duration(minutes: 4)), '05 typeface', (
-    tester,
-  ) async {
+  testWidgets('05 typeface', timeout: Timeout.none, (tester) async {
     tester.view.physicalSize = const Size(2400, 1400);
     tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+
     await _shoot(
       tester,
       '05_typeface',

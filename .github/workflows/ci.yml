@@ -1,0 +1,60 @@
+name: CI
+
+# Runs on every push to dev and on anything asking to become main.
+# Day-to-day work lands on dev; main only ever receives a merge from dev, and
+# that merge is what cuts a release.
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  analyse:
+    name: Analyse and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: Analyse
+        run: flutter analyze --fatal-infos
+
+      # tool/ holds the image generators, which write files rather than assert
+      # anything, and each needs its own process. Only test/ runs here.
+      - name: Test
+        run: flutter test
+
+      - name: Check the package is publishable
+        run: dart pub publish --dry-run
+
+  pana:
+    name: pub.dev score
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # The same scorer pub.dev runs, so the score is known before publishing
+      # rather than after.
+      - name: Score the package
+        run: |
+          dart pub global activate pana
+          dart pub global run pana --no-warning --exit-code-threshold 20 .

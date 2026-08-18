@@ -1,14 +1,29 @@
-# iraqi_license_plate
+<h1 align="center">iraqi_license_plate</h1>
 
-Photoreal Iraqi vehicle registration plates for Flutter — cars, motorcycles, the
-European blank and the legacy Arabic blank — with the full governorate,
-category and series-letter data model behind them.
+<p align="center">
+  <strong>لوحات المركبات العراقية لتطبيقات Flutter</strong><br>
+  Photoreal Iraqi vehicle registration plates for Flutter — cars, motorcycles,
+  the European blank and the legacy Arabic blank — with the full governorate,
+  category and series-letter data model behind them.
+</p>
 
-Everything is drawn by a single `CustomPainter`. No images, no fonts, no
-network, no plugins. The package depends on nothing but Flutter itself, so it
-drops into any project and works on every platform.
+<p align="center">
+  <a href="https://pub.dev/packages/iraqi_license_plate"><img alt="pub package" src="https://img.shields.io/pub/v/iraqi_license_plate.svg"></a>
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-blue.svg"></a>
+  <img alt="platforms" src="https://img.shields.io/badge/platforms-android%20%7C%20ios%20%7C%20web%20%7C%20macos%20%7C%20windows%20%7C%20linux-lightgrey.svg">
+  <a href="https://github.com/Abojawdat"><img alt="by Abojawdat" src="https://img.shields.io/badge/by-Abojawdat-C8102E.svg"></a>
+</p>
+
+Every plate is drawn by a single `CustomPainter` against the real blank
+dimensions in millimetres. No images, no fonts, no network, no plugins. The
+package depends on nothing but Flutter itself, so it drops into any project and
+runs on all six platforms.
 
 ![An Iraqi car plate rendered front and back — the stamped reverse in bare metal](render/01_front_and_back.png)
+
+<p align="center"><em>Not a picture — every pixel above is painted at run time.<br>
+The reverse is the same registration stamped through the aluminium: mirrored,
+concave, in bare unpainted metal.</em></p>
 
 ---
 
@@ -70,7 +85,81 @@ you can fall back to showing the raw string when a backend sends something odd.
 
 ---
 
+## Recipes
+
+### A driver card, straight off your API
+
+The common case. Your backend sends a registration string; `tryParse` returns
+`null` rather than throwing, so a malformed record degrades to plain text
+instead of crashing the screen.
+
+```dart
+Widget plateFor(Map<String, dynamic> driver) {
+  final plate = IraqiPlate.tryParse(
+    driver['plate_number'] as String,          // '11 A 70634' or '١١ A ٧٠٦٣٤'
+    category: PlateCategory.publicHire,        // a taxi
+  );
+
+  if (plate == null) {
+    return Text(driver['plate_number'] as String);
+  }
+  return IraqiLicensePlate(plate: plate, width: 160);
+}
+```
+
+### In a list
+
+Turn the security print off. Below ~90 px the painter skips it anyway, but at
+list sizes this is the cheapest win available.
+
+```dart
+ListView.builder(
+  itemCount: drivers.length,
+  itemBuilder: (context, i) => ListTile(
+    leading: IraqiLicensePlate(
+      plate: drivers[i].plate,
+      width: 96,
+      showShadow: false,
+      showSecurityPrint: false,
+    ),
+    title: Text(drivers[i].name),
+  ),
+)
+```
+
+### Validating what a user typed
+
+`validationError` returns a human-readable reason instead of throwing, so it
+drops straight into a form.
+
+```dart
+TextFormField(
+  decoration: const InputDecoration(labelText: 'رقم اللوحة'),
+  validator: (value) =>
+      IraqiPlate.tryParse(value ?? '')?.validationError
+      ?? 'Enter a plate like 11 A 70634',
+)
+```
+
+### Building a plate by hand
+
+```dart
+const plate = IraqiPlate(
+  governorate: IraqGovernorate.basra,
+  letter: 'B',
+  serial: '4821',
+  category: PlateCategory.cargo,               // yellow band
+  format: PlateFormat.modernLong,              // 520×110 European blank
+);
+```
+
+---
+
 ## The 3D viewer
+
+<p align="center">
+  <img src="render/06_spin.gif" alt="An Iraqi plate turning through a full revolution, front face to stamped reverse" width="420">
+</p>
 
 ```dart
 PlateViewer3D(plate: plate, width: 280)
@@ -118,6 +207,8 @@ and category spelled out in Arabic along the bottom — is still valid and still
 very common.
 
 ### Format → blank
+
+![The car, European, motorcycle, Kurdistan and legacy Arabic blanks](render/03_formats.png)
 
 | `PlateFormat`  | Blank      | Notes                                        |
 | -------------- | ---------- | -------------------------------------------- |
@@ -273,6 +364,76 @@ Baghdad plate (`11 A 70634`), kept in the code as `IraqiPlate.reference`.
 
 ---
 
+## Regenerating the images
+
+Every picture in this README is produced by the package itself — nothing here
+is a mockup or a photograph.
+
+```sh
+./tool/render_all.sh     # the stills  → render/*.png
+./tool/render_spin.sh    # the animation → render/06_spin.gif
+```
+
+Both scripts launch one `flutter test` process per image, which is slower than
+it looks like it should be and is deliberate: a test process wedges on its
+second call to `RenderRepaintBoundary.toImage`, so each one renders a single
+frame and exits.
+
+The scripts find a system font with Arabic coverage automatically, so the
+legacy blank renders its glyphs instead of empty boxes; override it with
+`PLATE_RENDER_FONT`, and raise the still resolution with `PLATE_RENDER_SCALE=2`.
+The GIF is encoded by `tool/assemble_gif.dart` in pure Dart — no ffmpeg, and no
+dependency added to the package.
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome, in Arabic or English —
+[github.com/Abojawdat/plate-number-service](https://github.com/Abojawdat/plate-number-service/issues).
+
+Corrections to the plate data are especially welcome. Iraq is running two
+registration systems at once and the published sources disagree with each
+other; if a plate on your street does not match what this package draws, open
+an issue with a photo.
+
+```sh
+flutter test          # the unit suite — fast, no rendering
+flutter analyze
+dart format .
+```
+
+### Branches
+
+| Branch | What it is |
+| ------ | ---------- |
+| `dev`  | Where the work happens. CI runs on every push. Open pull requests here. |
+| `main` | Released code only. It receives a merge from `dev` and nothing else. |
+
+A merge into `main` does not publish anything on its own. Releases are cut by
+tagging, so that a merge made in error stays cheap to undo while a publish —
+which can be retracted for seven days and never deleted — takes a deliberate
+second step:
+
+```sh
+git checkout main && git merge dev
+git tag v0.1.0 && git push origin main --tags
+```
+
+The tag has to match `version:` in `pubspec.yaml`; CI refuses the publish if it
+does not.
+
+---
+
+## Author
+
+Built by **Mohammad Othman (Abojawdat)** — [github.com/Abojawdat](https://github.com/Abojawdat).
+
+Made in Iraq, for the developers building here. If it saved you a week of
+CustomPainter work, a ⭐ on the
+[repo](https://github.com/Abojawdat/plate-number-service) is appreciated.
+
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Free for commercial use; attribution is not
+required, but always welcome.

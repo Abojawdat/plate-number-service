@@ -1,0 +1,53 @@
+name: Publish to pub.dev
+
+# Releases are cut by tagging main. Merging dev into main does not publish on
+# its own — a merge that turned out to be wrong is easy to fix, a publish is
+# not: a version on pub.dev can be retracted for seven days and never deleted.
+#
+# To release:
+#   git checkout main && git merge dev
+#   git tag v0.1.0 && git push origin main --tags
+#
+# The tag must match the `version:` in pubspec.yaml.
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+
+    # Required for pub.dev's OIDC authentication. Without it the publish step
+    # has no credentials and fails.
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Check the tag matches pubspec version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pubspec=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          if [ "$tag" != "$pubspec" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match pubspec version $pubspec."
+            exit 1
+          fi
+          echo "Publishing $pubspec."
+
+      - name: Analyse
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        run: flutter test
+
+      - name: Publish
+        run: dart pub publish --force

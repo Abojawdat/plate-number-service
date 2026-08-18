@@ -15,3 +15,6 @@ pubspec.lock
 
 # macOS
 .DS_Store
+
+# Intermediate frames for the spin animation; the GIF itself is committed.
+render/.frames/

@@ -15,8 +15,14 @@ topics:
   - vehicles
 
 screenshots:
-  - description: Every Iraqi plate blank and category, front and back.
+  - description: A car plate front and back — the reverse stamped through bare metal.
     path: render/01_front_and_back.png
+  - description: The eight categories, from private through to the Ministry of Defence.
+    path: render/02_categories.png
+  - description: The car, European, motorcycle, Kurdistan and legacy Arabic blanks.
+    path: render/03_formats.png
+  - description: One plate turning through a full revolution onto its stamped reverse.
+    path: render/06_spin.gif
 
 environment:
   sdk: ^3.7.0

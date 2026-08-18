@@ -1,4 +1,7 @@
-<h1 align="center">iraqi_license_plate</h1>
+<p align="center">
+  <img src="art/banner.svg" width="100%"
+       alt="iraqi_license_plate — an Iraqi plate stamping itself, character by character">
+</p>
 
 <p align="center">
   <strong>لوحات المركبات العراقية لتطبيقات Flutter</strong><br>
@@ -82,6 +85,11 @@ if (!plate.isValid) {
 `IraqiPlate.tryParse` accepts `11 A 70634`, `11A70634`, `11-A-70634`, and
 Eastern-Arabic digits (`١١ A ٧٠٦٣٤`). It returns `null` rather than throwing, so
 you can fall back to showing the raw string when a backend sends something odd.
+
+<p align="center">
+  <img src="art/anatomy.svg" width="100%"
+       alt="Every spelling tryParse accepts, and the three fields of an Iraqi registration">
+</p>
 
 ---
 
@@ -244,7 +252,10 @@ to `KR`. You do not set that — it follows from the governorate.
 The category is carried by the **colour of the side band**, not by the whole
 plate. A taxi plate is a white plate with a red band.
 
-![All eight plate categories, from private through to the Ministry of Defence](render/02_categories.png)
+<p align="center">
+  <img src="art/categories.svg" width="100%"
+       alt="The eight PlateCategory values cycling through the side band of one plate">
+</p>
 
 | `PlateCategory` | Band | Arabic | Meaning |
 | --------------- | ---- | ------ | ------- |
@@ -370,8 +381,9 @@ Every picture in this README is produced by the package itself — nothing here
 is a mockup or a photograph.
 
 ```sh
-./tool/render_all.sh     # the stills  → render/*.png
-./tool/render_spin.sh    # the animation → render/06_spin.gif
+./tool/render_all.sh     # the stills    → render/*.png
+./tool/render_spin.sh    # the spin      → render/06_spin.gif
+python3 tool/render_art.py  # the diagrams → art/*.svg
 ```
 
 Both scripts launch one `flutter test` process per image, which is slower than
@@ -384,6 +396,14 @@ legacy blank renders its glyphs instead of empty boxes; override it with
 `PLATE_RENDER_FONT`, and raise the still resolution with `PLATE_RENDER_SCALE=2`.
 The GIF is encoded by `tool/assemble_gif.dart` in pure Dart — no ffmpeg, and no
 dependency added to the package.
+
+The diagrams in `art/` are the one exception to "rendered by the package": they
+are SVG, so they can carry type and labels a widget cannot, and they animate on
+GitHub without a video. They are not drawings of a plate from memory —
+`tool/render_art.py` lays the glyphs out with the same metrics as
+`PlateTypeface` and stacks the same four relief layers as `_emboss`, in the same
+millimetre space as `_PlateSpec`, so the diagrams cannot quietly drift away from
+what the painter puts on screen. It has no dependencies.
 
 ---
 

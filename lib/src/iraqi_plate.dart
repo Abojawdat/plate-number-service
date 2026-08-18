@@ -1,24 +1,15 @@
 import 'dart:ui';
 
-/// Domain model for Iraqi vehicle registration plates.
+import 'plate_palette.dart';
+
+/// Which blank a plate is issued on.
 ///
-/// Sources for the rules encoded here:
-///  * en.wikipedia.org/wiki/Vehicle_registration_plates_of_Iraq
-///  * matriculasdelmundo.com/en/irak.html
+/// Both the current system (rolled out in the Kurdistan Region in April 2022
+/// and across the rest of Iraq from June 2024) and the 2010-era Arabic plate
+/// are on the road, so both must render.
 ///
-/// Two systems are on the road at the same time and both must render:
-///
-///  * [PlateFormat.modernShort] / [PlateFormat.modernLong] — the format rolled
-///    out in the Kurdistan Region in April 2022 and across the rest of Iraq
-///    from June 2024. Latin letters, Western digits, `IRQ`/`KR` in the side
-///    band, governorate written as a two-digit code instead of its name.
-///  * [PlateFormat.legacy] — the 2010-era plate. Eastern-Arabic digits, an
-///    Arabic series letter, and the governorate name plus the category word
-///    spelled out in Arabic along the bottom. Still valid, still very common.
-///
-/// The reference photo this renderer was matched against is a Baghdad plate
-/// reading `11 A 70634`: governorate 11, transitional series letter `A`, and a
-/// five-digit serial carried over from the old system.
+/// Rules per en.wikipedia.org/wiki/Vehicle_registration_plates_of_Iraq and
+/// matriculasdelmundo.com/en/irak.html.
 enum PlateFormat {
   /// 335 × 155 mm, two rows. The common passenger-car plate.
   modernShort,
@@ -26,9 +17,8 @@ enum PlateFormat {
   /// 520 × 110 mm, one row. Standard European blank.
   modernLong,
 
-  /// 200 × 125 mm, two rows. Motorcycles and other vehicles that cannot carry
-  /// a full-size blank: same registration scheme, shorter and squarer, with a
-  /// narrower band and no mounting rivets through the printed area.
+  /// 200 × 125 mm, two rows. Motorcycles: same scheme on a shorter, squarer
+  /// blank with a narrower band and no rivets.
   motorcycle,
 
   /// 335 × 155 mm, Arabic. Pre-2024 issue.
@@ -39,11 +29,8 @@ enum PlateFormat {
 /// Kurdistan Region governorates read `KR`.
 enum PlateRegion { federal, kurdistan }
 
-/// The 19 governorate codes of the current system.
-///
-/// Codes are not alphabetical and not contiguous with any older scheme — they
-/// are simply the list published with the 2022/2024 rollout, so they are
-/// hard-coded rather than derived.
+/// The 19 governorate codes of the current system, as published with the
+/// 2022/2024 rollout.
 enum IraqGovernorate {
   baghdad(11, 'بغداد', 'Baghdad'),
   nineveh(12, 'نينوى', 'Nineveh'),
@@ -83,8 +70,7 @@ enum IraqGovernorate {
   /// The code as it appears on the plate, always two digits.
   String get codeText => code.toString().padLeft(2, '0');
 
-  /// Looks up a governorate by its plate code, or `null` if 11–29 does not
-  /// cover it (which means the plate is malformed or pre-2022).
+  /// Looks up a governorate by its plate code, or `null` outside 11–29.
   static IraqGovernorate? fromCode(int code) {
     for (final governorate in values) {
       if (governorate.code == code) return governorate;
@@ -93,132 +79,131 @@ enum IraqGovernorate {
   }
 }
 
-/// Vehicle category. On Iraqi plates the category is carried by the colour of
-/// the side band, not by the main field — a taxi plate is a white plate with a
-/// red band, not a red plate. The two exceptions are the security and defence
-/// plates, which colour the whole field and invert the lettering.
+/// Vehicle category, carried by the colour of the side band rather than the
+/// main field — a taxi is a white plate with a red band. The security and
+/// defence plates are the exceptions: they colour the field too.
 enum PlateCategory {
   /// خصوصي — privately owned passenger cars. The default.
   private(
     arabicLabel: 'خصوصي',
     englishLabel: 'Private',
-    bandColor: Color(0xFFE8EAEC),
-    bandInk: Color(0xFF121417),
-    fieldColor: Color(0xFFF2F4F5),
-    fieldInk: Color(0xFF121417),
+    defaultPalette: PlatePalette(
+      bandColor: Color(0xFFE8EAEC),
+      bandInk: Color(0xFF121417),
+      fieldColor: Color(0xFFF2F4F5),
+      fieldInk: Color(0xFF121417),
+    ),
   ),
 
-  /// أجرة — taxis, buses and anything else carrying fares. The category that
-  /// matters most to this app: every driver on the platform should be on one.
+  /// أجرة — taxis, buses and anything else carrying fares.
   publicHire(
     arabicLabel: 'أجرة',
     englishLabel: 'Public hire',
-    bandColor: Color(0xFFC8102E),
-    bandInk: Color(0xFFFFFFFF),
-    fieldColor: Color(0xFFF2F4F5),
-    fieldInk: Color(0xFF121417),
+    defaultPalette: PlatePalette(
+      bandColor: Color(0xFFC8102E),
+      bandInk: Color(0xFFFFFFFF),
+      fieldColor: Color(0xFFF2F4F5),
+      fieldInk: Color(0xFF121417),
+    ),
   ),
 
   /// حكومية — state-owned vehicles.
   government(
     arabicLabel: 'حكومية',
     englishLabel: 'Government',
-    bandColor: Color(0xFF10499B),
-    bandInk: Color(0xFFFFFFFF),
-    fieldColor: Color(0xFFF2F4F5),
-    fieldInk: Color(0xFF121417),
+    defaultPalette: PlatePalette(
+      bandColor: Color(0xFF10499B),
+      bandInk: Color(0xFFFFFFFF),
+      fieldColor: Color(0xFFF2F4F5),
+      fieldInk: Color(0xFF121417),
+    ),
   ),
 
   /// حمل — goods vehicles: trucks, tractors, cranes.
   cargo(
     arabicLabel: 'حمل',
     englishLabel: 'Cargo',
-    bandColor: Color(0xFFF2B705),
-    bandInk: Color(0xFF121417),
-    fieldColor: Color(0xFFF2F4F5),
-    fieldInk: Color(0xFF121417),
+    defaultPalette: PlatePalette(
+      bandColor: Color(0xFFF2B705),
+      bandInk: Color(0xFF121417),
+      fieldColor: Color(0xFFF2F4F5),
+      fieldInk: Color(0xFF121417),
+    ),
   ),
 
   /// زراعي — agricultural and construction machinery.
   agricultural(
     arabicLabel: 'زراعي',
     englishLabel: 'Agricultural',
-    bandColor: Color(0xFF1B7F44),
-    bandInk: Color(0xFFFFFFFF),
-    fieldColor: Color(0xFFF2F4F5),
-    fieldInk: Color(0xFF121417),
+    defaultPalette: PlatePalette(
+      bandColor: Color(0xFF1B7F44),
+      bandInk: Color(0xFFFFFFFF),
+      fieldColor: Color(0xFFF2F4F5),
+      fieldInk: Color(0xFF121417),
+    ),
   ),
 
-  /// Temporary plate issued at customs while a freshly imported vehicle is
-  /// cleared. Short-lived, so a driver should never be operating on one.
+  /// مؤقت — issued at customs while an imported vehicle is cleared.
   temporary(
     arabicLabel: 'مؤقت',
     englishLabel: 'Temporary',
-    bandColor: Color(0xFFE8710A),
-    bandInk: Color(0xFFFFFFFF),
-    fieldColor: Color(0xFFF2F4F5),
-    fieldInk: Color(0xFF121417),
+    defaultPalette: PlatePalette(
+      bandColor: Color(0xFFE8710A),
+      bandInk: Color(0xFFFFFFFF),
+      fieldColor: Color(0xFFF2F4F5),
+      fieldInk: Color(0xFF121417),
+    ),
   ),
 
-  /// جهاز مكافحة الإرهاب — Counter Terrorism Service. Whole plate is black.
+  /// مكافحة الإرهاب — Counter Terrorism Service. The whole plate is black.
   security(
     arabicLabel: 'مكافحة الإرهاب',
     englishLabel: 'Counter-terrorism',
-    bandColor: Color(0xFF15171A),
-    bandInk: Color(0xFFF2F4F5),
-    fieldColor: Color(0xFF1D2024),
-    fieldInk: Color(0xFFF2F4F5),
+    defaultPalette: PlatePalette(
+      bandColor: Color(0xFF15171A),
+      bandInk: Color(0xFFF2F4F5),
+      fieldColor: Color(0xFF1D2024),
+      fieldInk: Color(0xFFF2F4F5),
+    ),
   ),
 
   /// الدفاع — Ministry of Defence. White lettering on green.
   defence(
     arabicLabel: 'الدفاع',
     englishLabel: 'Defence',
-    bandColor: Color(0xFF0B5D34),
-    bandInk: Color(0xFFFFFFFF),
-    fieldColor: Color(0xFF117843),
-    fieldInk: Color(0xFFFFFFFF),
+    defaultPalette: PlatePalette(
+      bandColor: Color(0xFF0B5D34),
+      bandInk: Color(0xFFFFFFFF),
+      fieldColor: Color(0xFF117843),
+      fieldInk: Color(0xFFFFFFFF),
+    ),
   );
 
   const PlateCategory({
     required this.arabicLabel,
     required this.englishLabel,
-    required this.bandColor,
-    required this.bandInk,
-    required this.fieldColor,
-    required this.fieldInk,
+    required this.defaultPalette,
   });
 
   /// The category word as it is spelled out on a [PlateFormat.legacy] plate.
   final String arabicLabel;
   final String englishLabel;
 
-  /// Background of the `IRQ`/`KR` side band.
-  final Color bandColor;
+  /// The authentic colours for this category, as issued.
+  final PlatePalette defaultPalette;
 
-  /// Ink used for the band lettering and flag frame.
-  final Color bandInk;
+  /// True when the field is dark, which flips the emboss lighting.
+  bool get isDarkField => defaultPalette.isDarkField;
 
-  /// Background of the main field.
-  final Color fieldColor;
-
-  /// Ink used for the registration characters.
-  final Color fieldInk;
-
-  /// True when the field is dark, which flips the emboss lighting: raised
-  /// characters on a dark plate catch light on their faces, not their walls.
-  bool get isDarkField => fieldColor.computeLuminance() < 0.4;
-
-  /// Categories a rider could plausibly be picked up in. Used by the lab
-  /// screen to highlight the realistic subset.
+  /// The categories a passenger could plausibly be picked up in.
   static const List<PlateCategory> rideEligible = [private, publicHire];
 }
 
-/// The Arabic series letters used by the legacy system and their Latin
-/// equivalents. The modern system assigns Latin letters sequentially as blocks
-/// are exhausted, and — per the rollout rules — gives the letter `A` to every
-/// registration carried over with five or fewer digits, which is why so many
-/// plates on the road today read `A`.
+/// The Arabic series letters of the legacy system and their Latin equivalents.
+///
+/// The current system assigns Latin letters sequentially, and gave `A` to every
+/// registration carried over with five or fewer digits — which is why so many
+/// plates on the road read `A`.
 enum PlateSeries {
   alif('ا', 'A'),
   ba('ب', 'B'),
@@ -243,8 +228,7 @@ enum PlateSeries {
   final String arabic;
   final String latin;
 
-  /// The series for a Latin letter, or `null` if that letter is not part of
-  /// the legacy mapping (the modern system may still use it).
+  /// The series for a Latin letter, or `null` if it has no legacy counterpart.
   static PlateSeries? fromLatin(String letter) {
     final upper = letter.toUpperCase();
     for (final series in values) {
@@ -254,9 +238,7 @@ enum PlateSeries {
   }
 }
 
-/// One rendered plate.
-///
-/// Immutable and cheap to build; [copyWith] is what the lab screen drives.
+/// One registration: governorate, series letter, serial, category and blank.
 class IraqiPlate {
   const IraqiPlate({
     required this.governorate,
@@ -266,7 +248,7 @@ class IraqiPlate {
     this.format = PlateFormat.modernShort,
   });
 
-  /// The plate from the reference photograph, kept as a known-good sample.
+  /// A known-good sample plate, taken from the reference photograph.
   static const reference = IraqiPlate(
     governorate: IraqGovernorate.baghdad,
     letter: 'A',
@@ -278,8 +260,7 @@ class IraqiPlate {
   /// Series letter, a single Latin character.
   final String letter;
 
-  /// Registration serial. Four digits under the current scheme; five on
-  /// registrations carried over from the legacy system.
+  /// Four digits under the current scheme, five on carried-over registrations.
   final String serial;
 
   final PlateCategory category;
@@ -296,14 +277,11 @@ class IraqiPlate {
   /// Eastern-Arabic rendering of the serial, for [PlateFormat.legacy].
   String get serialArabicDigits => toArabicDigits(serial);
 
-  /// Arabic series letter for [PlateFormat.legacy], falling back to the Latin
-  /// letter when it has no legacy counterpart.
+  /// Arabic series letter for [PlateFormat.legacy], falling back to [letter].
   String get letterArabic => PlateSeries.fromLatin(letter)?.arabic ?? letter;
 
-  /// `null` when the plate is well formed, otherwise why it is not.
-  ///
-  /// Deliberately returns a message rather than throwing: this is meant to
-  /// back a text field in the lab screen and, later, driver-document review.
+  /// `null` when the plate is well formed, otherwise why it is not. Returns a
+  /// message rather than throwing so it can back a text field directly.
   String? get validationError {
     if (letter.length != 1) {
       return 'The series letter must be a single character.';
@@ -324,10 +302,8 @@ class IraqiPlate {
 
   bool get isValid => validationError == null;
 
-  /// Parses `11 A 70634`, `11A70634` or `11-A-70634`.
-  ///
-  /// Returns `null` on anything it cannot read, so callers can fall back to
-  /// showing the raw string rather than a wrong plate.
+  /// Parses `11 A 70634`, `11A70634` or `11-A-70634`, returning `null` on
+  /// anything it cannot read.
   static IraqiPlate? tryParse(
     String input, {
     PlateCategory category = PlateCategory.private,
@@ -380,8 +356,8 @@ class IraqiPlate {
     return buffer.toString();
   }
 
-  /// `٧٠٦٣٤` → `70634`. Handles the Persian digit block too, because a
-  /// fair number of Iraqi keyboards emit it.
+  /// `٧٠٦٣٤` → `70634`. Also handles the Persian digit block, which a fair
+  /// number of Iraqi keyboards emit.
   static String fromArabicDigits(String input) {
     final buffer = StringBuffer();
     for (final rune in input.runes) {

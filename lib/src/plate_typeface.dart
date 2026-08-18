@@ -1,27 +1,18 @@
 import 'dart:ui';
 
-/// Vector typeface for Iraqi registration plates.
+/// Vector typeface for Iraqi registration plates: the DIN-1451-derived face
+/// they are stamped with, authored as centre-line skeletons stroked at a fixed
+/// weight. Bundling a real font is not an option, and stroking keeps the
+/// four-pass emboss in [IraqiLicensePlate] cheap.
 ///
-/// Iraqi plates are stamped with a DIN-1451-derived face: monolinear, flat
-/// terminals, squared bowls. None of the fonts bundled with this app (Almarai,
-/// Nrt, Cairo) come close — they are humanist Arabic families whose Latin
-/// digits read as "app UI", not "pressed aluminium". So the glyphs are authored
-/// here as centre-line skeletons that get stroked at a fixed weight.
-///
-/// Stroking (rather than filling an outline) is deliberate: the emboss in
-/// [IraqiLicensePlate] draws the *same* path four times at sub-millimetre
-/// offsets, and a stroked path offsets identically to a filled one while
-/// costing a quarter of the path data.
-///
-/// Design grid — all glyph coordinates are in these units, scaled at paint time:
+/// Design grid, scaled at paint time:
 /// ```
-///   x: 0 .. em (70)          advance width
-///   y: 0 .. cap (100)        cap height, baseline at y = cap
-///   skeleton kept inside     x 9..61, y 8.5..91.5  (half a stroke from the edge)
+///   x: 0 .. em (70)       advance width
+///   y: 0 .. cap (100)     cap height, baseline at y = cap
+///   skeleton inside       x 9..61, y 8.5..91.5 (half a stroke from the edge)
 /// ```
-/// Ink therefore spans 58/100 of the cap height and the advance is 70/100,
-/// which matches the proportions measured off a real Baghdad plate (0.63 ink,
-/// 0.68 advance) to within a couple of percent.
+/// The resulting proportions match a real Baghdad plate to within a couple of
+/// percent.
 class PlateTypeface {
   const PlateTypeface._();
 
@@ -31,7 +22,7 @@ class PlateTypeface {
   /// Cap height, in glyph units. Everything else is expressed relative to this.
   static const double cap = 100;
 
-  /// Skeleton stroke weight. 0.17 × cap — measured off the ring of a real `0`.
+  /// Skeleton stroke weight, measured off the ring of a real `0`.
   static const double stroke = 17;
 
   // Skeleton bounds: half a stroke inside the em box on every side.
@@ -41,8 +32,8 @@ class PlateTypeface {
   static const double _b = 91.5;
   static const double _cx = 35;
 
-  /// Per-glyph advance overrides. Digits stay monospaced so that the two rows
-  /// of a plate line up in a column, exactly as the stamping die does it.
+  /// Per-glyph advance overrides. Digits stay monospaced so the two rows of a
+  /// plate line up in a column, as the stamping die does.
   static const Map<String, double> _advance = {
     'I': 36,
     'J': 66,
@@ -63,10 +54,8 @@ class PlateTypeface {
     return total - tracking;
   }
 
-  /// Centre-line path for [char], or `null` when the glyph is not in the face.
-  ///
-  /// The returned path is shared and must never be mutated by callers; use
-  /// [Path.shift] / [Path.transform], both of which return copies.
+  /// Centre-line path for [char], or `null` when the face has no such glyph.
+  /// The path is shared, so mutate only through [Path.shift]/[Path.transform].
   static Path? glyph(String char) => _glyphs[char.toUpperCase()];
 
   /// Whether every character of [text] can be rendered by this face.
@@ -317,12 +306,12 @@ class PlateTypeface {
           ..lineTo(59, _b),
   };
 
-  /// The `0`/`O`/`Q` bowl. A squared-off superellipse, not a circle — the
-  /// straight flanks are what make a plate zero read as a plate zero.
+  /// The `0`/`O`/`Q` bowl: squared off, not a circle. The straight flanks are
+  /// what make a plate zero read as one.
   static Path _rounded() =>
       Path()..addRRect(RRect.fromLTRBXY(_l, _t, _r, _b, 19, 23));
 
-  /// Shared spine + bowl of `P`, which `R` reuses before adding its leg.
+  /// Spine and bowl of `P`, which `R` reuses before adding its leg.
   static Path _bowlP() =>
       Path()
         ..moveTo(13, _b)

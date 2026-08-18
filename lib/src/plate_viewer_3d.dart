@@ -31,22 +31,21 @@ class _PlateViewer3DState extends State<PlateViewer3D>
   late double _rotX = widget.initialRotationX;
   late double _rotY = widget.initialRotationY;
 
-  /// Radians per second, decayed by [_friction] while the spin animation runs.
+  /// Radians per second, decayed by [_friction] while the spin runs.
   double _spinX = 0;
   double _spinY = 0;
 
   late final Ticker _ticker;
   Duration _lastTick = Duration.zero;
 
-  /// Fraction of angular velocity retained per second. Low enough that a flick
-  /// settles in about a second and a half.
+  /// Angular velocity retained per second: a flick settles in ~1.5 s.
   static const double _friction = 0.12;
 
   /// Below this the spin is not worth a frame.
   static const double _restThreshold = 0.05;
 
-  /// How many slab layers to stack between the two faces. Eight is the point
-  /// where the edge stops looking like banding on a phone screen.
+  /// Layers stacked between the two faces to read as the cut edge. Eight is
+  /// where the banding stops showing on a phone screen.
   static const int _slabLayers = 8;
 
   /// Perspective strength — the `[3][2]` entry of the projection matrix.
@@ -98,8 +97,7 @@ class _PlateViewer3DState extends State<PlateViewer3D>
     if (!_ticker.isActive) _ticker.start();
   }
 
-  /// Animates [_rotY] to [target] over a short curve. Used by the flip and the
-  /// reset, both of which want a settled pose rather than a spin.
+  /// Eases into a settled pose. Used by the flip and the reset.
   void _glideTo({double? x, double? y}) {
     _stopSpin();
     final fromX = _rotX;
@@ -131,10 +129,8 @@ class _PlateViewer3DState extends State<PlateViewer3D>
       ..forward();
   }
 
-  /// True while the front of the blank faces the camera.
-  ///
-  /// The plate normal `(0,0,1)` under `rotateX(a)` then `rotateY(b)` has a
-  /// z-component of `cos a · cos b`; positive means we are looking at the face.
+  /// True while the front faces the camera: the plate normal `(0,0,1)` under
+  /// `rotateX(a)` then `rotateY(b)` has z-component `cos a · cos b`.
   bool get _frontVisible => math.cos(_rotX) * math.cos(_rotY) > 0;
 
   Matrix4 _matrix(double z) =>
@@ -151,8 +147,8 @@ class _PlateViewer3DState extends State<PlateViewer3D>
     final thickness = widget.thickness ?? widget.width * 0.016;
     final radius = widget.width * 0.027;
 
-    //! the plate sweeps a larger box while rotating; reserve for it so the
-    //! corners are not clipped mid-spin
+    // The plate sweeps a larger box while rotating; reserve for it so the
+    // corners are not clipped mid-spin.
     final boxWidth = widget.width * 1.12;
     final boxHeight = height + widget.width * 0.42;
 
@@ -183,11 +179,9 @@ class _PlateViewer3DState extends State<PlateViewer3D>
               rotationY: _rotY,
               plateHeight: height,
             ),
-            //! Each face keeps its own side of the slab — the printed face is
-            //! always at +z, the bare reverse always at -z. What changes with
-            //! the rotation is only the *paint order*: a Stack has no depth
-            //! buffer, so whichever face is farther has to be drawn first or it
-            //! will cover the one in front of it.
+            // Each face keeps its own side of the slab; only the paint order
+            // changes. A Stack has no depth buffer, so the farther face has to
+            // be drawn first.
             ...(_frontVisible
                 ? [
                   _backFace(thickness),
@@ -229,9 +223,7 @@ class _PlateViewer3DState extends State<PlateViewer3D>
   );
 
   /// The slab between the faces, emitted back-to-front for the current pose.
-  ///
-  /// The layers sit strictly *between* `±thickness/2` so neither one lands on
-  /// top of a face and hides it.
+  /// The layers sit strictly between `±thickness/2` so neither hides a face.
   List<Widget> _slabs(
     double thickness,
     double height,
@@ -314,9 +306,7 @@ class _EdgeSlab extends StatelessWidget {
   }
 }
 
-/// Soft contact shadow on the surface below, which slides and squashes as the
-/// plate turns. Cheap, but it is what stops the plate looking like it is
-/// floating in a void.
+/// Soft contact shadow that slides and squashes as the plate turns.
 class _GroundShadow extends StatelessWidget {
   const _GroundShadow({
     required this.width,

@@ -1,8 +1,5 @@
-// Unit tests for the plate data model.
-//
-// Pure Dart — no widgets, no rasterisation, no golden files. This is the suite
-// that should run in CI on every push; the visual harness in tool/ is for
-// eyeballing renders by hand.
+// Unit tests for the plate data model. Pure Dart; the visual harness in tool/
+// is for eyeballing renders by hand.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:iraqi_license_plate/iraqi_license_plate.dart';
 

@@ -5,19 +5,14 @@ import 'iraqi_license_plate.dart';
 import 'iraqi_plate.dart';
 import 'plate_viewer_3d.dart';
 
-/// A ready-made explorer for everything in this package.
-///
-/// Drop it into any app to browse the formats, categories, governorates and
-/// series letters, and to check a plate renders the way you expect:
+/// A ready-made explorer for the formats, categories, governorates and series
+/// letters this package can draw.
 ///
 /// ```dart
 /// Navigator.of(context).push(
 ///   MaterialPageRoute(builder: (_) => const PlateGalleryScreen()),
 /// );
 /// ```
-///
-/// It depends on nothing but Flutter's own Material widgets, so it will pick up
-/// the ambient [Theme] and works in either brightness.
 class PlateGalleryScreen extends StatefulWidget {
   const PlateGalleryScreen({this.initialPlate, super.key});
 
@@ -69,7 +64,7 @@ class _PlateGalleryScreenState extends State<PlateGalleryScreen> {
               values: PlateCategory.values,
               selected: _plate.category,
               label: (c) => '${c.englishLabel}  ${c.arabicLabel}',
-              swatch: (c) => c.bandColor,
+              swatch: (c) => c.defaultPalette.bandColor,
               onTap: (v) => _set(_plate.copyWith(category: v)),
             ),
           ),

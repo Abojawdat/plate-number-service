@@ -3,26 +3,20 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'iraqi_plate.dart';
+import 'plate_palette.dart';
+import 'plate_theme.dart';
 import 'plate_typeface.dart';
 
-/// Which side of the blank to draw.
-///
-/// The registration is *stamped* through the aluminium, so the back carries
-/// the same characters as a mirrored, concave relief in bare metal — no paint,
-/// no colour band, no printed flag. Driven by `PlateViewer3D`.
+/// Which side of the blank to draw. The registration is stamped through the
+/// aluminium, so the back is the same relief mirrored and concave in bare
+/// metal — no paint, no band, no flag.
 enum PlateFace { front, back }
 
 /// A photoreal Iraqi registration plate.
 ///
-/// Everything inside the painter is expressed in **millimetres** against the
-/// real blank (335 × 155 for the car plate, 520 × 110 for the European one,
-/// 200 × 125 for motorcycles) and scaled to the widget at paint time. That
-/// keeps every proportion — bolt spacing, band width, cap height — traceable
-/// to the physical plate instead of to a screen percentage, and means the
-/// widget is correct at any size.
-///
-/// It is a self-scaling object: give it a [width] in logical pixels and every
-/// other dimension follows. Never constrain it by height.
+/// Every dimension inside the painter is in millimetres against the real blank
+/// and scaled at paint time, so the plate is correct at any size. Give it a
+/// [width] and the rest follows; never constrain it by height.
 ///
 /// ```dart
 /// IraqiLicensePlate(
@@ -34,6 +28,7 @@ class IraqiLicensePlate extends StatelessWidget {
   const IraqiLicensePlate({
     required this.plate,
     this.width,
+    this.palette,
     this.showShadow = true,
     this.showSecurityPrint = true,
     this.tiltDegrees = 0,
@@ -49,27 +44,32 @@ class IraqiLicensePlate extends StatelessWidget {
   /// Rendered width in logical pixels. Defaults to [defaultWidth].
   final double? width;
 
-  /// Width used when [width] is omitted — about the size the plate wants to
-  /// be inside a list row or a driver card.
+  /// Colours to paint the plate in. Resolved from this argument first, then
+  /// any [IraqiPlateTheme] above the widget, then [IraqiPlate.category]'s own.
+  final PlatePalette? palette;
+
+  /// Width used when [width] is omitted.
   static const double defaultWidth = 220;
 
-  /// Drop shadow beneath the plate. Turn it off when the plate sits on an
-  /// already-elevated surface.
+  /// Drop shadow beneath the plate.
   final bool showShadow;
 
-  /// Micro-printing, map watermarks and guilloche. Below about 90 logical
-  /// pixels wide these stop resolving, so the painter skips them anyway; this
-  /// flag is for callers that want a clean plate at large sizes.
+  /// Micro-printing, map watermarks and guilloche. Skipped automatically below
+  /// about 90 logical pixels wide, where they stop resolving.
   final bool showSecurityPrint;
 
-  /// Rotation about the Y axis, in degrees, with perspective. Used by the lab
-  /// screen's hero; leave at 0 for in-app use.
+  /// Rotation about the Y axis, in degrees, with perspective.
   final double tiltDegrees;
 
   @override
   Widget build(BuildContext context) {
     final spec = _PlateSpec.of(plate.format);
-    final resolvedWidth = width ?? defaultWidth;
+    final theme = IraqiPlateTheme.maybeOf(context);
+    final resolvedPalette =
+        palette ??
+        theme?.paletteFor(plate.category) ??
+        plate.category.defaultPalette;
+    final resolvedWidth = width ?? theme?.defaultWidth ?? defaultWidth;
     final resolvedHeight = resolvedWidth * spec.heightMm / spec.widthMm;
     final radius = resolvedWidth * spec.cornerRadius / spec.widthMm;
 
@@ -79,8 +79,10 @@ class IraqiLicensePlate extends StatelessWidget {
       child: CustomPaint(
         painter: _PlatePainter(
           plate: plate,
+          palette: resolvedPalette,
           spec: spec,
-          showSecurityPrint: showSecurityPrint,
+          showSecurityPrint:
+              showSecurityPrint && (theme?.showSecurityPrint ?? true),
           face: face,
         ),
         isComplex: true,
@@ -93,8 +95,7 @@ class IraqiLicensePlate extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(radius),
           boxShadow: [
-            //! two shadows: a tight contact shadow so the plate reads as
-            //! sitting on the surface, and a wide soft one for the lift
+            // A tight contact shadow, then a wide soft one for the lift.
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.22),
               blurRadius: resolvedHeight * 0.05,
@@ -122,7 +123,7 @@ class IraqiLicensePlate extends StatelessWidget {
       );
     }
 
-    //! the plate is a physical object, never mirrored by an ambient RTL layout
+    // A plate is a physical object; an ambient RTL layout must not mirror it.
     return Directionality(textDirection: TextDirection.ltr, child: rendered);
   }
 }
@@ -131,11 +132,9 @@ class IraqiLicensePlate extends StatelessWidget {
 // Geometry
 // ---------------------------------------------------------------------------
 
-/// Physical layout of a plate blank. All fields are millimetres.
-///
-/// The numbers for [PlateFormat.modernShort] were measured off the reference
-/// photograph as fractions of the plate and converted to the 335 × 155 blank,
-/// which is why they are not round.
+/// Physical layout of a plate blank, in millimetres. The car-plate numbers
+/// were measured off the reference photograph, which is why they are not
+/// round.
 class _PlateSpec {
   const _PlateSpec({
     required this.widthMm,
@@ -170,8 +169,7 @@ class _PlateSpec {
   /// Cap height of the `IRQ` / `KR` letters.
   final double bandCap;
 
-  /// Vertical centres of the band letters, one per letter. Chosen by
-  /// [_bandLetterYsFor] so a two-letter `KR` band stays balanced.
+  /// Vertical centres of the band letters, one per letter.
   final List<double> bandLetterYs;
   final Offset flagCenter;
   final double flagWidth;
@@ -198,8 +196,7 @@ class _PlateSpec {
     PlateFormat.motorcycle => _motorcycle,
   };
 
-  /// 335 × 155 two-row blank — the ordinary passenger-car plate and the one in
-  /// the reference photograph.
+  /// 335 × 155 two-row blank — the ordinary passenger-car plate.
   static const _short = _PlateSpec(
     widthMm: 335,
     heightMm: 155,
@@ -214,8 +211,7 @@ class _PlateSpec {
     contentLeft: 74,
     contentRight: 301,
     rows: [_Row(top: 15, cap: 55), _Row(top: 82, cap: 60)],
-    //! centred in the gutters either side of the registration, not crowded
-    //! against the band divider (44) or the frame (327.6)
+    // Centred in the gutters either side of the registration.
     bolts: [Offset(59, 76), Offset(313, 76)],
     boltRadius: 7,
     serialMarkX: 325,
@@ -241,14 +237,9 @@ class _PlateSpec {
     serialMarkX: 514,
   );
 
-  /// 200 × 125 two-row blank for motorcycles.
-  ///
-  /// The registration scheme is identical to a car's — the blank is simply
-  /// shorter and squarer. Two consequences worth knowing: the band is narrower
-  /// so the `IRQ` letters and flag shrink with it, and there are no rivets,
-  /// because a bike plate bolts through its corners rather than through the
-  /// field. Cap heights are set so a five-digit serial fits the content box
-  /// without the shrink-to-fit in [_drawGlyphRun] engaging.
+  /// 200 × 125 two-row blank for motorcycles. No rivets — a bike plate bolts
+  /// through its corners — and cap heights sized so a five-digit serial fits
+  /// without [_drawGlyphRun]'s shrink-to-fit engaging.
   static const _motorcycle = _PlateSpec(
     widthMm: 200,
     heightMm: 125,
@@ -268,8 +259,7 @@ class _PlateSpec {
     serialMarkX: 195,
   );
 
-  /// Spreads [count] band letters over the same vertical run the three-letter
-  /// `IRQ` band occupies, so `KR` does not sit lopsided.
+  /// Spreads [count] letters over the run `IRQ` occupies, so `KR` is balanced.
   List<double> bandLetterYsFor(int count) {
     if (count == bandLetterYs.length) return bandLetterYs;
     final first = bandLetterYs.first;
@@ -294,12 +284,17 @@ class _Row {
 class _PlatePainter extends CustomPainter {
   _PlatePainter({
     required this.plate,
+    required this.palette,
     required this.spec,
     required this.showSecurityPrint,
     this.face = PlateFace.front,
   });
 
   final IraqiPlate plate;
+
+  /// Colours to paint with, already resolved by the widget.
+  final PlatePalette palette;
+
   final _PlateSpec spec;
   final bool showSecurityPrint;
   final PlateFace face;
@@ -312,8 +307,8 @@ class _PlatePainter extends CustomPainter {
   /// Millimetres-to-pixels, set once per paint.
   late double _px;
 
-  /// One "depth unit" for the emboss, in mm. Real characters stand about
-  /// 1.2 mm proud of the sheeting.
+  /// One depth unit for the emboss, in mm. Real characters stand about 1.2 mm
+  /// proud of the sheeting.
   static const double _depth = 1.15;
 
   @override
@@ -323,9 +318,8 @@ class _PlatePainter extends CustomPainter {
     canvas.scale(_px);
 
     if (_isBack) {
-      //! the reverse is the same stamping seen from behind, so mirror the whole
-      //! coordinate system: once the viewer rotates the plate 180° the two
-      //! mirrorings cancel and the relief lines up with the front exactly
+      // Mirror the whole coordinate system: once the viewer turns the plate
+      // 180° the two mirrorings cancel and the relief lines up with the front.
       canvas.translate(spec.widthMm, 0);
       canvas.scale(-1, 1);
     }
@@ -342,8 +336,7 @@ class _PlatePainter extends CustomPainter {
 
     _paintField(canvas, plateRect);
     if (_isBack) {
-      //! nothing is printed on the reverse — no sheeting, no band, no flag.
-      //! Just rolled aluminium and the back of the stamping.
+      // Nothing is printed on the reverse — just rolled aluminium.
       _paintBrushing(canvas, plateRect);
     } else {
       _paintBeads(canvas, plateRect);
@@ -366,9 +359,8 @@ class _PlatePainter extends CustomPainter {
 
   // — surfaces ————————————————————————————————————————————————————————
 
-  /// Aluminium under retroreflective sheeting. The gradient is derived from the
-  /// category colour so a black CTS plate or a green defence plate comes out
-  /// metallic too, rather than flat.
+  /// Aluminium under retroreflective sheeting. The gradient derives from the
+  /// category colour, so a black or green plate comes out metallic too.
   void _paintField(Canvas canvas, Rect rect) {
     final base = _ground;
     canvas.drawRect(
@@ -389,11 +381,11 @@ class _PlatePainter extends CustomPainter {
     );
   }
 
-  /// The glass-bead layer of the reflective sheeting. Invisible individually,
-  /// but it is what stops the plate reading as flat vector art.
+  /// The glass-bead layer of the reflective sheeting — what stops the plate
+  /// reading as flat vector art.
   void _paintBeads(Canvas canvas, Rect rect) {
     final beads = _beadCache.putIfAbsent(spec.widthMm, () {
-      //! fixed seed: the bead field must be identical on every rebuild
+      // Fixed seed: the bead field must be identical on every rebuild.
       final random = math.Random(20240601);
       return List<Offset>.generate(
         1400,
@@ -404,7 +396,7 @@ class _PlatePainter extends CustomPainter {
       );
     });
     final light =
-        plate.category.isDarkField
+        palette.isDarkField
             ? Colors.white.withValues(alpha: 0.10)
             : Colors.white.withValues(alpha: 0.55);
     final dark = Colors.black.withValues(alpha: 0.05);
@@ -430,10 +422,10 @@ class _PlatePainter extends CustomPainter {
 
   /// The surface the relief is lit against: sheeting on the front, bare rolled
   /// aluminium on the back.
-  Color get _ground => _isBack ? _backMetal : plate.category.fieldColor;
+  Color get _ground => _isBack ? _backMetal : palette.fieldColor;
 
-  /// Rolling marks on the unpainted reverse — fine horizontal streaks, which
-  /// is what distinguishes bare aluminium from the bead-blasted front.
+  /// Rolling marks on the unpainted reverse, which distinguish bare aluminium
+  /// from the bead-blasted front.
   void _paintBrushing(Canvas canvas, Rect rect) {
     final random = math.Random(7717);
     final paint =
@@ -474,8 +466,8 @@ class _PlatePainter extends CustomPainter {
     );
   }
 
-  /// Micro-printing, repeated map-of-Iraq watermarks and a guilloche wave —
-  /// the three security features visible on the reference plate.
+  /// The three security features visible on the reference plate: micro-print,
+  /// map watermarks and a guilloche wave.
   void _paintSecurityPrint(Canvas canvas) {
     final fieldRect = Rect.fromLTRB(
       spec.bandRight,
@@ -486,7 +478,7 @@ class _PlatePainter extends CustomPainter {
     canvas.save();
     canvas.clipRect(fieldRect);
 
-    final inkAlpha = plate.category.isDarkField ? 0.10 : 0.075;
+    final inkAlpha = palette.isDarkField ? 0.10 : 0.075;
 
     // Repeated country name, alternating Latin and Arabic, offset row to row.
     final line = _microTextPainter(inkAlpha);
@@ -506,9 +498,7 @@ class _PlatePainter extends CustomPainter {
 
     // Repeated map of Iraq, ghosted into the sheeting in neutral grey.
     final mapGrey =
-        plate.category.isDarkField
-            ? const Color(0xFFB9C0C7)
-            : const Color(0xFF6E767F);
+        palette.isDarkField ? const Color(0xFFB9C0C7) : const Color(0xFF6E767F);
     final mapFill =
         Paint()
           ..color = mapGrey.withValues(alpha: inkAlpha * 2.2)
@@ -535,7 +525,7 @@ class _PlatePainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.55
-          ..color = (plate.category.isDarkField ? Colors.white : Colors.black)
+          ..color = (palette.isDarkField ? Colors.white : Colors.black)
               .withValues(alpha: inkAlpha);
     for (var i = 0; i < 3; i++) {
       final path = Path();
@@ -558,8 +548,9 @@ class _PlatePainter extends CustomPainter {
     final stamp = _textPainter(
       _manufacturerStamp,
       fontSize: 5,
-      color: (plate.category.isDarkField ? Colors.white : Colors.black)
-          .withValues(alpha: 0.20),
+      color: (palette.isDarkField ? Colors.white : Colors.black).withValues(
+        alpha: 0.20,
+      ),
       weight: FontWeight.w600,
       letterSpacing: 0.6,
     );
@@ -569,9 +560,8 @@ class _PlatePainter extends CustomPainter {
     canvas.restore();
   }
 
-  /// Deterministic per-plate die/batch stamp, in the style of the `M07 S8889`
-  /// on the reference plate. Stable for a given registration so the plate does
-  /// not "shimmer" between rebuilds.
+  /// Die/batch stamp in the style of the `M07 S8889` on the reference plate.
+  /// Derived from the registration so it does not shimmer between rebuilds.
   String get _manufacturerStamp {
     final seed = plate.formatted.hashCode.abs();
     final die = (seed % 90 + 10).toString();
@@ -583,24 +573,22 @@ class _PlatePainter extends CustomPainter {
     return _textPainter(
       '  REPUBLIC OF IRAQ  جمهورية العراق  كۆماری عێراق',
       fontSize: 4.2,
-      color: (plate.category.isDarkField ? Colors.white : Colors.black)
-          .withValues(alpha: alpha),
+      color: (palette.isDarkField ? Colors.white : Colors.black).withValues(
+        alpha: alpha,
+      ),
       weight: FontWeight.w500,
       letterSpacing: 0.2,
     );
   }
 
-  /// The coloured category band down the left edge. Private plates have no
-  /// tint — bare sheeting, exactly as on the reference photograph.
+  /// The coloured category band down the left edge; private plates have none.
   ///
-  /// The tint is confined to the area *inside* the raised black frame: on a
-  /// real plate the colour is printed on the sheeting, and the sheeting stops
-  /// at the frame. Letting it run to the plate edge merges the band with the
-  /// rolled rim and destroys the sense of a border.
+  /// The tint stops inside the raised frame, because on a real plate the colour
+  /// is printed on the sheeting and the sheeting stops there.
   void _paintBand(Canvas canvas) {
     if (!_bandIsTinted) return;
     final rect = Rect.fromLTRB(0, 0, spec.bandRight, spec.heightMm);
-    final base = plate.category.bandColor;
+    final base = palette.bandColor;
     canvas.save();
     canvas.clipRRect(_frameInnerRRect);
     canvas.drawRect(
@@ -616,8 +604,8 @@ class _PlatePainter extends CustomPainter {
     canvas.restore();
   }
 
-  /// The area enclosed by the raised frame, taken to the centre of the frame
-  /// stroke so nothing shows through as a hairline along the inside edge.
+  /// The area enclosed by the raised frame, taken to the centre of the stroke
+  /// so nothing shows through as a hairline along the inside edge.
   RRect get _frameInnerRRect {
     final inset = spec.frameInset + spec.frameStroke * 0.5;
     return RRect.fromRectXY(
@@ -627,11 +615,9 @@ class _PlatePainter extends CustomPainter {
     );
   }
 
-  bool get _bandIsTinted =>
-      plate.category.bandColor != PlateCategory.private.bandColor;
+  bool get _bandIsTinted => palette.isBandTinted;
 
-  /// Broad diagonal highlight — the reason the plate looks like it is being
-  /// lit rather than printed.
+  /// Broad diagonal highlight, so the plate reads as lit rather than printed.
   void _paintSpecular(Canvas canvas, Rect rect) {
     canvas.drawRect(
       rect,
@@ -682,7 +668,7 @@ class _PlatePainter extends CustomPainter {
 
   Color get _frameInk {
     if (_isBack) return _darken(_backMetal, 0.10);
-    return plate.category.isDarkField
+    return palette.isDarkField
         ? const Color(0xFFE9ECEE)
         : const Color(0xFF14171A);
   }
@@ -696,9 +682,7 @@ class _PlatePainter extends CustomPainter {
     final ink =
         _isBack
             ? _darken(_backMetal, 0.10)
-            : (_bandIsTinted
-                ? plate.category.bandInk
-                : plate.category.fieldInk);
+            : (_bandIsTinted ? palette.bandInk : palette.fieldInk);
 
     for (var i = 0; i < letters.length; i++) {
       final glyph = PlateTypeface.glyph(letters[i]);
@@ -721,11 +705,11 @@ class _PlatePainter extends CustomPainter {
         PlateTypeface.stroke * scale,
         ink,
         depthScale: 0.5,
-        surface: (_bandIsTinted && !_isBack) ? plate.category.bandColor : null,
+        surface: (_bandIsTinted && !_isBack) ? palette.bandColor : null,
       );
     }
 
-    //! the flag is printed on the sheeting, so it simply is not there on the back
+    // The flag is printed on the sheeting, so it is not there on the back.
     if (!_isBack) _paintFlag(canvas);
   }
 
@@ -761,8 +745,8 @@ class _PlatePainter extends CustomPainter {
       Rect.fromLTWH(rect.left, rect.top + third * 2, rect.width, third),
       Paint()..color = const Color(0xFF14171A),
     );
-    //! takbir in the white band — at this size it is a green mark, which is
-    //! exactly how it reads on a real plate at arm's length
+    // Takbir in the white band. At this size it is a green mark, which is how
+    // it reads on a real plate at arm's length.
     final takbir = _textPainter(
       'الله أكبر',
       fontSize: third * 0.82,
@@ -808,7 +792,7 @@ class _PlatePainter extends CustomPainter {
         right: spec.contentRight,
         align: _RunAlign.center,
         tracking: 0.10,
-        //! wider gaps around the series letter keep the three fields legible
+        // Wider gaps around the series letter keep the three fields legible.
         groupAfter: {2: 0.55, 3: 0.55},
       );
       return;
@@ -833,7 +817,7 @@ class _PlatePainter extends CustomPainter {
       cap: top.cap,
       top: top.top,
       left: spec.contentLeft,
-      //! the letter sits inboard of the serial's right edge on the real plate
+      // The letter sits inboard of the serial's right edge on a real plate.
       right: spec.contentRight - (spec.contentRight - spec.contentLeft) * 0.13,
       align: _RunAlign.right,
       tracking: 0,
@@ -853,7 +837,7 @@ class _PlatePainter extends CustomPainter {
   /// Pre-2024 plate: Eastern-Arabic serial with an Arabic series letter, and
   /// the category word and governorate name spelled out along the bottom.
   void _paintLegacyRegistration(Canvas canvas) {
-    final ink = _isBack ? _darken(_backMetal, 0.10) : plate.category.fieldInk;
+    final ink = _isBack ? _darken(_backMetal, 0.10) : palette.fieldInk;
     const rowTop = 22.0;
     const rowCap = 62.0;
 
@@ -957,7 +941,7 @@ class _PlatePainter extends CustomPainter {
       _RunAlign.right => right - effectiveWidth,
       _RunAlign.center => left + (available - effectiveWidth) / 2,
     };
-    //! keep the row optically centred on its box when it was shrunk
+    // Keep the row optically centred on its box when it was shrunk.
     final startY = top + (cap - cap * fit) / 2;
 
     final combined = Path();
@@ -984,13 +968,13 @@ class _PlatePainter extends CustomPainter {
       canvas,
       combined,
       PlateTypeface.stroke * effectiveScale,
-      _isBack ? _darken(_backMetal, 0.10) : plate.category.fieldInk,
+      _isBack ? _darken(_backMetal, 0.10) : palette.fieldInk,
     );
   }
 
-  /// Four-layer relief: contact shadow, extruded wall, lit top edge, painted
-  /// face. Drawing the *same* stroked path at sub-millimetre offsets is what
-  /// sells the stamping — a flat fill plus a drop shadow does not.
+  /// Four-layer relief: contact shadow, extruded wall, lit edge, painted face.
+  /// Drawing the same stroked path at sub-millimetre offsets is what sells the
+  /// stamping; a flat fill plus a drop shadow does not.
   void _emboss(
     Canvas canvas,
     Path path,
@@ -1011,13 +995,12 @@ class _PlatePainter extends CustomPainter {
           ..strokeMiterLimit = 2
           ..isAntiAlias = true;
 
-    //! On the reverse the relief is the same stamping seen from behind, so it
-    //! is concave: every offset flips sign and the lit wall swaps to the
-    //! bottom-right. Same four layers, mirrored lighting.
+    // The reverse is concave, so every offset flips sign and the lit wall
+    // swaps to the bottom-right.
     final sign = _isBack ? -1.0 : 1.0;
 
-    // 1. shadow the character casts onto the surface (an ambient occlusion
-    //    pool inside the recess, on the back)
+    // 1. shadow cast onto the surface (an occlusion pool in the recess, on
+    //    the back)
     canvas.drawPath(
       path.shift(Offset(d * 1.45 * sign, d * 1.85 * sign)),
       stroked()
@@ -1048,8 +1031,8 @@ class _PlatePainter extends CustomPainter {
     );
   }
 
-  /// [_emboss] for text runs, which cannot share one path because the colour
-  /// is baked into the [TextPainter].
+  /// [_emboss] for text runs, whose colour is baked into the [TextPainter] and
+  /// so cannot share a single path.
   void _embossText(
     Canvas canvas,
     TextPainter face,
@@ -1090,7 +1073,7 @@ class _PlatePainter extends CustomPainter {
   /// Mounting rivets. Two on the short blank, at the outer edges of the field.
   void _paintBolts(Canvas canvas) {
     if (_isBack) {
-      //! from behind you see the hole, not the rivet head
+      // From behind you see the hole, not the rivet head.
       for (final centre in spec.bolts) {
         canvas.drawCircle(
           centre,
@@ -1199,16 +1182,9 @@ class _PlatePainter extends CustomPainter {
 
   /// Silhouette of Iraq, normalised into [box].
   ///
-  /// Traced clockwise from the Syria/Turkey corner in the north-west. The
-  /// vertices are the country's real border turning-points projected from
-  /// lon/lat — `x = (lon - 38.80) / 9.80`, `y = (37.38 - lat) / 8.28` — which
-  /// works as an equirectangular projection here because Iraq's bounding box is
-  /// very nearly square on the ground (about 910 × 920 km).
-  ///
-  /// Recognisable features, in order: the Turkish border across the top, the
-  /// Penjwen bulge into Iran, the tail down the Shatt al-Arab to Faw, the
-  /// Kuwait notch, the long straight Saudi border running north-west, the beak
-  /// pointing at Jordan, and the Syrian border back up to the start.
+  /// Real border turning-points, traced clockwise from the Syria/Turkey corner
+  /// and projected equirectangularly — `x = (lon - 38.80) / 9.80`,
+  /// `y = (37.38 - lat) / 8.28`.
   static Path _iraqPath(Rect box) {
     const points = <Offset>[
       Offset(36.2, 3.4), // Fishkhabur — Syria/Turkey corner
@@ -1259,7 +1235,9 @@ class _PlatePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _PlatePainter old) =>
       old.plate != plate ||
+      old.palette != palette ||
       old.spec != spec ||
+      old.face != face ||
       old.showSecurityPrint != showSecurityPrint;
 }
 

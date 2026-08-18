@@ -552,6 +552,94 @@ does not.
 
 ---
 
+## بالعربية
+
+<div dir="rtl">
+
+**لوحات المركبات العراقية لتطبيقات Flutter.**
+
+كل لوحة مرسومة بالكامل داخل `CustomPainter` واحد، بأبعاد اللوحة الحقيقية
+بالمليمتر. لا صور، ولا خطوط، ولا إنترنت، ولا إضافات — الحزمة لا تعتمد على أي
+شيء غير Flutter نفسه، وتعمل على المنصات الست جميعها.
+
+### التثبيت
+
+```sh
+flutter pub add iraqi_license_plate
+```
+
+### أبسط استخدام
+
+```dart
+IraqiLicensePlate(
+  plate: IraqiPlate.tryParse('11 A 70634')!,
+  width: 220,
+)
+```
+
+حدّد العرض `width` فقط — الارتفاع يأتي من نسبة اللوحة الحقيقية.
+
+### مع بيانات من الـ API
+
+`tryParse` تقبل `11 A 70634` و `11A70634` و `11-A-70634` والأرقام العربية
+`١١ A ٧٠٦٣٤`، وتُرجع `null` بدل أن ترمي استثناء — فإذا أرسل الخادم قيمة غير
+صحيحة تعرض النص كما هو بدل أن ينهار التطبيق.
+
+```dart
+final plate = IraqiPlate.tryParse(driver['plate_number'] as String);
+
+if (plate == null) {
+  return Text(driver['plate_number'] as String);
+}
+return IraqiLicensePlate(plate: plate, width: 160);
+```
+
+### الألوان
+
+الفئات الثماني تحمل ألوانها الرسمية كما تُصدر فعلياً، فاللوحة التي لا تغيّر
+فيها شيئاً هي لوحة عراقية حقيقية. ولتغييرها إلى ألوانك:
+
+```dart
+IraqiLicensePlate(
+  plate: plate,
+  palette: const PlatePalette.branded(Color(0xFF7289DA)),
+)
+```
+
+أو لتغيير كل اللوحات في التطبيق دفعة واحدة عبر `IraqiPlateTheme`.
+
+### الأنماط الجاهزة
+
+`IraqiPlateStyles` تضم كل الأنماط — خصوصي، أجرة، حكومية، حمل، زراعي، مؤقت،
+مكافحة الإرهاب، الدفاع، الأوروبية، الدراجات النارية، واللوحة العربية القديمة —
+ويمكن عرضها للمستخدم ليختار منها:
+
+```dart
+PlateStylePicker(
+  styles: IraqiPlateStyles.all,
+  selected: _style,
+  onSelected: (style) => setState(() => _style = style),
+  labelsInArabic: true,
+)
+```
+
+### ما تدعمه الحزمة
+
+النظامان معاً: النظام الحالي (٢٠٢٢ في إقليم كردستان، و٢٠٢٤ في بقية العراق)
+بالحروف اللاتينية والأرقام الإنجليزية، والنظام القديم بالأرقام العربية والحرف
+العربي واسم المحافظة والفئة بالعربية أسفل اللوحة. كذلك المحافظات التسع عشرة
+بأكوادها، وتحويل اللوحة تلقائياً إلى `KR` في محافظات الإقليم الأربع.
+
+### المساهمة
+
+الملاحظات والمساهمات مرحّب بها بالعربية أو الإنجليزية على
+[GitHub](https://github.com/Abojawdat/plate-number-service/issues).
+إذا كانت لوحة في شارعك لا تطابق ما ترسمه الحزمة، افتح issue مع صورة.
+
+</div>
+
+---
+
 ## Author
 
 Built by **Mohammad Othman (Abojawdat)** — [github.com/Abojawdat](https://github.com/Abojawdat).

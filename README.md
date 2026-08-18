@@ -40,7 +40,7 @@ Or by hand:
 
 ```yaml
 dependencies:
-  iraqi_license_plate: ^0.1.0
+  iraqi_license_plate: ^0.1.1
 ```
 
 Then:

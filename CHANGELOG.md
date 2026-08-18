@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- README: an Arabic section covering install, usage, live API data, colours and
+  the style picker, so the package reads in the language most of its users work
+  in.
+
 ## 0.1.0
 
 - Initial release.

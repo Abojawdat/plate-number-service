@@ -8,25 +8,21 @@ Everything is drawn by a single `CustomPainter`. No images, no fonts, no
 network, no plugins. The package depends on nothing but Flutter itself, so it
 drops into any project and works on every platform.
 
+![An Iraqi car plate rendered front and back — the stamped reverse in bare metal](render/01_front_and_back.png)
+
 ---
 
 ## Install
 
-Copy this folder next to your app and add a path dependency:
-
-```yaml
-dependencies:
-  iraqi_license_plate:
-    path: ../plate number service
+```sh
+flutter pub add iraqi_license_plate
 ```
 
-Or point at a git remote once you have pushed it:
+Or by hand:
 
 ```yaml
 dependencies:
-  iraqi_license_plate:
-    git:
-      url: https://github.com/<you>/iraqi-plate-service.git
+  iraqi_license_plate: ^0.1.0
 ```
 
 Then:
@@ -157,6 +153,8 @@ to `KR`. You do not set that — it follows from the governorate.
 The category is carried by the **colour of the side band**, not by the whole
 plate. A taxi plate is a white plate with a red band.
 
+![All eight plate categories, from private through to the Ministry of Defence](render/02_categories.png)
+
 | `PlateCategory` | Band | Arabic | Meaning |
 | --------------- | ---- | ------ | ------- |
 | `private` | none (bare metal) | خصوصي | Privately owned cars. Default. |
@@ -272,4 +270,9 @@ merges the band with the rolled rim and the border stops reading as a border.
 
 Colour and layout details were cross-checked against a photograph of a current
 Baghdad plate (`11 A 70634`), kept in the code as `IraqiPlate.reference`.
-# plate-number-service
+
+---
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).

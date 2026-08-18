@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0
+## 0.1.0
 
 - Initial release.
 - `IraqiLicensePlate` renderer: four blanks (car 335×155, European 520×110,

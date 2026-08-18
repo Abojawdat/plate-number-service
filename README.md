@@ -163,6 +163,113 @@ const plate = IraqiPlate(
 
 ---
 
+## Your colours
+
+The eight categories carry the colours as they are actually issued, so a plate
+you do nothing to is a real Iraqi plate. When you want your own, a
+`PlatePalette` replaces them.
+
+```dart
+// One accent colour — the field stays ordinary white sheeting.
+IraqiLicensePlate(
+  plate: plate,
+  palette: const PlatePalette.branded(Color(0xFF7289DA)),
+)
+
+// Or start from a real plate and change one thing.
+IraqiLicensePlate(
+  plate: plate,
+  palette: PlateCategory.publicHire.defaultPalette.copyWith(
+    bandColor: myBrandRed,
+  ),
+)
+
+// Or set all four.
+const PlatePalette(
+  bandColor: Color(0xFF1B1B1F),
+  bandInk: Color(0xFFFFD400),
+  fieldColor: Color(0xFF1B1B1F),
+  fieldInk: Color(0xFFFFD400),
+)
+```
+
+The painter follows the palette rather than the category, so a dark field
+automatically flips the emboss lighting — raised characters on a dark plate
+catch light on their faces, not their walls.
+
+`PlatePalette.lerp` interpolates between two palettes, which is what you want
+inside an `AnimatedBuilder` when a plate changes category.
+
+### Every plate in the app at once
+
+```dart
+IraqiPlateTheme(
+  data: IraqiPlateThemeData(
+    palettes: {PlateCategory.publicHire: PlatePalette.branded(myBrandRed)},
+    defaultWidth: 180,
+    showSecurityPrint: false,   // cheaper when a screen shows many plates
+  ),
+  child: MyApp(),
+)
+```
+
+Resolution runs the way it does everywhere else in Flutter: **the widget's own
+`palette` first, then the theme, then the category's issued colours.**
+Categories you leave out of `palettes` keep their real ones.
+
+---
+
+## Letting the user choose
+
+`PlateStyle` is a named look — a blank, a palette, and an id you can store.
+Unlike the enums, styles are ordinary values, so you can offer a subset, keep
+one in your database, or add your own.
+
+```dart
+PlateStylePicker(
+  styles: IraqiPlateStyles.rideEligible,   // or .all, .modern, or your own list
+  selected: _style,
+  onSelected: (style) => setState(() => _style = style),
+  labelsInArabic: true,
+)
+
+// Draw the chosen style.
+IraqiLicensePlate(
+  plate: _style.applyTo(plate),
+  palette: _style.palette,
+)
+```
+
+Each option in the picker is a real plate drawn by the package, so the user
+chooses by looking rather than by reading a label.
+
+Ids are stable, which is what makes them safe to persist:
+
+```dart
+await db.save(driver.id, _style.id);            // 'taxi'
+final style = IraqiPlateStyles.byId(stored);    // null if unknown
+```
+
+| Catalogue | Contents |
+| --------- | -------- |
+| `IraqiPlateStyles.all` | all eleven styles |
+| `IraqiPlateStyles.modern` | everything except the legacy Arabic blank |
+| `IraqiPlateStyles.rideEligible` | private and public hire |
+
+Building one of your own is just a value:
+
+```dart
+final myStyle = PlateStyle(
+  id: 'my_brand',
+  name: 'Brand',
+  nameArabic: 'علامتي',
+  format: PlateFormat.modernShort,
+  palette: PlatePalette.branded(myBrandColor),
+);
+```
+
+---
+
 ## The 3D viewer
 
 <p align="center">

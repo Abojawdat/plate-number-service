@@ -867,29 +867,39 @@ class _PlatePainter extends CustomPainter {
     final ink = _isBack ? _darken(_backMetal, 0.10) : palette.fieldInk;
     const rowTop = 22.0;
     const rowCap = 62.0;
+    final left = spec.contentLeft - 6;
 
-    final serial = _textPainter(
+    TextPainter serialAt(double fit) => _textPainter(
       plate.serialArabicDigits,
-      fontSize: rowCap,
+      fontSize: rowCap * fit,
       color: ink,
       weight: FontWeight.w800,
       family: 'Almarai',
-      letterSpacing: 2,
+      letterSpacing: 2 * fit,
     );
-    final letter = _textPainter(
+    TextPainter letterAt(double fit) => _textPainter(
       plate.letterArabic,
-      fontSize: rowCap * 0.86,
+      fontSize: rowCap * 0.86 * fit,
       color: ink,
       weight: FontWeight.w800,
       family: 'Almarai',
       direction: TextDirection.rtl,
     );
 
-    _embossText(canvas, letter, Offset(spec.contentLeft - 6, rowTop), ink);
+    // Letter flush left, serial flush right. A wide letter such as ض beside
+    // four or five bold Eastern-Arabic digits outruns the field, so both
+    // shrink together, keeping a clear gap, rather than overlap.
+    final needed = letterAt(1).width + rowCap * 0.25 + serialAt(1).width;
+    final fit = math.min(1.0, (spec.contentRight - left) / needed);
+    final serial = serialAt(fit);
+    final letter = letterAt(fit);
+    final y = rowTop + rowCap * (1 - fit) / 2;
+
+    _embossText(canvas, letter, Offset(left, y), ink);
     _embossText(
       canvas,
       serial,
-      Offset(spec.contentRight - serial.width, rowTop),
+      Offset(spec.contentRight - serial.width, y),
       ink,
     );
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+- Fix: on the legacy blank a wide Arabic letter such as ض or ت beside a four-
+  or five-digit serial no longer overlaps it. The letter and serial now shrink
+  together when they would not fit, always keeping a clear gap; plates that
+  already fit are unchanged.
+
 ## 0.2.0
 
 - Arabic series letters are supported: any Arabic letter, not only the 17 of

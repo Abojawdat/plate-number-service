@@ -241,7 +241,7 @@ enum PlateSeries {
 /// One registration: governorate, series letter, serial, category and blank.
 class IraqiPlate {
   const IraqiPlate({
-    required this.governorate,
+    this.governorate,
     required this.serial,
     this.letter = 'A',
     this.category = PlateCategory.private,
@@ -255,9 +255,12 @@ class IraqiPlate {
     serial: '70634',
   );
 
-  final IraqGovernorate governorate;
+  /// `null` when the source did not say. The plate is then drawn without its
+  /// code, or on [PlateFormat.legacy] without the governorate name.
+  final IraqGovernorate? governorate;
 
-  /// Series letter, a single Latin character.
+  /// Series letter: a single Latin character, or an Arabic one as stamped on
+  /// a pre-2024 plate. Drawn as given, never transliterated.
   final String letter;
 
   /// Four digits under the current scheme, five on carried-over registrations.
@@ -266,13 +269,14 @@ class IraqiPlate {
   final PlateCategory category;
   final PlateFormat format;
 
-  PlateRegion get region => governorate.region;
+  PlateRegion get region => governorate?.region ?? PlateRegion.federal;
 
   /// `IRQ` for federal plates, `KR` for the Kurdistan Region.
   String get bandText => region == PlateRegion.kurdistan ? 'KR' : 'IRQ';
 
   /// Human-readable form, e.g. `11 A 70634`.
-  String get formatted => '${governorate.codeText} $letter $serial';
+  String get formatted =>
+      [governorate?.codeText, letter, serial].nonNulls.join(' ');
 
   /// Eastern-Arabic rendering of the serial, for [PlateFormat.legacy].
   String get serialArabicDigits => toArabicDigits(serial);
@@ -283,14 +287,13 @@ class IraqiPlate {
   /// `null` when the plate is well formed, otherwise why it is not. Returns a
   /// message rather than throwing so it can back a text field directly.
   String? get validationError {
-    if (letter.length != 1) {
+    // 'هـ' carries a tatweel that is spelling, not a second letter.
+    final bare = letter.replaceAll('ـ', '');
+    if (bare.length != 1) {
       return 'The series letter must be a single character.';
     }
-    final code = letter.codeUnitAt(0);
-    final isLatinLetter =
-        (code >= 0x41 && code <= 0x5A) || (code >= 0x61 && code <= 0x7A);
-    if (!isLatinLetter) {
-      return 'The series letter must be A–Z.';
+    if (!RegExp('^[$_letters]\$', caseSensitive: false).hasMatch(bare)) {
+      return 'The series letter must be A–Z or an Arabic letter.';
     }
     if (serial.isEmpty) return 'The serial is required.';
     if (serial.length > 5) return 'The serial cannot exceed five digits.';
@@ -302,26 +305,52 @@ class IraqiPlate {
 
   bool get isValid => validationError == null;
 
+  /// Every character a series letter can be: Latin, or any Arabic-script
+  /// letter (the Persian and Kurdish additions included), not only the ones
+  /// [PlateSeries] knows.
+  static const _letters = r'A-Zء-غف-يٮٯٱ-ۓە';
+
   /// Parses `11 A 70634`, `11A70634` or `11-A-70634`, returning `null` on
   /// anything it cannot read.
+  ///
+  /// The code may be missing, as on a pre-2024 plate (`12456 ز`, `ز 12456`);
+  /// [governorate] then fills it in, and stays `null` if not given. An Arabic
+  /// series letter is kept as written and makes [format] default to
+  /// [PlateFormat.legacy].
   static IraqiPlate? tryParse(
     String input, {
+    IraqGovernorate? governorate,
     PlateCategory category = PlateCategory.private,
-    PlateFormat format = PlateFormat.modernShort,
+    PlateFormat? format,
   }) {
     final cleaned = fromArabicDigits(
       input,
-    ).toUpperCase().replaceAll(RegExp(r'[\s\-_/]'), '');
-    final match = RegExp(r'^(\d{2})([A-Z])(\d{1,5})$').firstMatch(cleaned);
+    ).toUpperCase().replaceAll(RegExp(r'[\s\-_/ـ]'), '');
+    final match = RegExp('^(\\d*)([$_letters])(\\d*)\$').firstMatch(cleaned);
     if (match == null) return null;
-    final governorate = IraqGovernorate.fromCode(int.parse(match.group(1)!));
-    if (governorate == null) return null;
+    final before = match.group(1)!;
+    final letter = match.group(2)!;
+    final after = match.group(3)!;
+
+    // Digits on both sides of the letter are code then serial. On one side
+    // only, they are the serial and the plate carries no code.
+    var known = governorate;
+    if (before.isNotEmpty && after.isNotEmpty) {
+      if (before.length != 2) return null;
+      known = IraqGovernorate.fromCode(int.parse(before));
+      if (known == null) return null;
+    }
+    final serial = after.isEmpty ? before : after;
+    if (serial.isEmpty || serial.length > 5) return null;
+
+    final isArabic = letter.codeUnitAt(0) > 0x7F;
     return IraqiPlate(
-      governorate: governorate,
-      letter: match.group(2)!,
-      serial: match.group(3)!,
+      governorate: known,
+      letter: letter,
+      serial: serial,
       category: category,
-      format: format,
+      format:
+          format ?? (isArabic ? PlateFormat.legacy : PlateFormat.modernShort),
     );
   }
 

@@ -215,8 +215,11 @@ class _Stage extends StatelessWidget {
             ),
           ),
           Text(
-            '${plate.governorate.englishName} · ${plate.category.englishLabel}'
-            ' · ${plate.bandText}',
+            [
+              plate.governorate?.englishName,
+              plate.category.englishLabel,
+              plate.bandText,
+            ].nonNulls.join(' · '),
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.45),
               fontSize: 12,
@@ -272,7 +275,7 @@ class _Chips<T> extends StatelessWidget {
   });
 
   final List<T> values;
-  final T selected;
+  final T? selected;
   final String Function(T) label;
   final Color Function(T)? swatch;
   final ValueChanged<T> onTap;

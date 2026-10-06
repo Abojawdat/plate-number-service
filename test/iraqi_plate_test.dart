@@ -1,5 +1,6 @@
-// Unit tests for the plate data model. Pure Dart; the visual harness in tool/
-// is for eyeballing renders by hand.
+// Unit tests for the plate data model, plus one smoke test that the painter
+// survives odd input. The visual harness in tool/ is for eyeballing renders.
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:iraqi_license_plate/iraqi_license_plate.dart';
 
@@ -25,11 +26,59 @@ void main() {
       expect(IraqiPlate.tryParse('11 a 70634')?.letter, 'A');
     });
 
+    test('keeps an Arabic series letter and draws it on the legacy blank', () {
+      for (final input in ['12456 ز', 'ز 12456', '١٢٤٥٦ ز', '11 ز 12456']) {
+        final plate = IraqiPlate.tryParse(input);
+        expect(plate, isNotNull, reason: input);
+        expect(plate!.letter, 'ز');
+        expect(plate.letterArabic, 'ز');
+        expect(plate.serial, '12456');
+        expect(plate.format, PlateFormat.legacy);
+        expect(plate.isValid, isTrue);
+      }
+      // An explicit format still wins.
+      expect(
+        IraqiPlate.tryParse('12456 ز', format: PlateFormat.modernLong)?.format,
+        PlateFormat.modernLong,
+      );
+    });
+
+    test('reads any Arabic letter, not only the ones PlateSeries maps', () {
+      for (final letter in ['ع', 'ش', 'ي', 'گ', 'ڤ']) {
+        expect(PlateSeries.fromLatin(letter), isNull);
+        expect(IraqiPlate.tryParse('12456 $letter')?.letter, letter);
+      }
+      // The tatweel in 'هـ' is spelling, not a second letter.
+      expect(IraqiPlate.tryParse('12456 هـ')?.letter, 'ه');
+    });
+
+    test('a plate without a code takes the governorate it is given', () {
+      expect(IraqiPlate.tryParse('70634 A')?.governorate, isNull);
+      expect(IraqiPlate.tryParse('70634 A')?.formatted, 'A 70634');
+      expect(
+        IraqiPlate.tryParse(
+          '12456 ز',
+          governorate: IraqGovernorate.basra,
+        )?.governorate,
+        IraqGovernorate.basra,
+      );
+      // A code on the plate beats the hint.
+      expect(
+        IraqiPlate.tryParse(
+          '11 A 70634',
+          governorate: IraqGovernorate.basra,
+        )?.governorate,
+        IraqGovernorate.baghdad,
+      );
+    });
+
     test('returns null rather than throwing on junk', () {
       for (final input in [
         '',
         'hello',
-        '11 A', // no serial
+        'A', // no serial
+        '12456', // no letter
+        '12456 زز', // two letters
         '99 A 70634', // 99 is not a governorate
         '11 A 706341', // six digits
         '1 A 70634', // one-digit governorate
@@ -60,6 +109,42 @@ void main() {
         IraqiPlate.reference.copyWith(letter: '4').validationError,
         contains('A–Z'),
       );
+    });
+
+    test('accepts an Arabic series letter', () {
+      for (final letter in ['ز', 'ع', 'هـ']) {
+        expect(
+          IraqiPlate.reference.copyWith(letter: letter).isValid,
+          isTrue,
+          reason: letter,
+        );
+      }
+    });
+  });
+
+  group('painting', () {
+    testWidgets('never throws on an Arabic letter or a missing governorate', (
+      tester,
+    ) async {
+      for (final format in PlateFormat.values) {
+        for (final letter in ['A', 'ز']) {
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Center(
+                child: IraqiLicensePlate(
+                  plate: IraqiPlate(
+                    serial: '12456',
+                    letter: letter,
+                    format: format,
+                  ),
+                ),
+              ),
+            ),
+          );
+          expect(tester.takeException(), isNull, reason: '$format $letter');
+        }
+      }
     });
   });
 

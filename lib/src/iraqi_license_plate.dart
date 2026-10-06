@@ -783,9 +783,10 @@ class _PlatePainter extends CustomPainter {
 
     if (spec.rows.length == 1) {
       final row = spec.rows.first;
+      final code = plate.governorate?.codeText ?? '';
       _drawGlyphRun(
         canvas,
-        '${plate.governorate.codeText}${plate.letter}${plate.serial}',
+        '$code${plate.letter}${plate.serial}',
         cap: row.cap,
         top: row.top,
         left: spec.contentLeft,
@@ -793,7 +794,10 @@ class _PlatePainter extends CustomPainter {
         align: _RunAlign.center,
         tracking: 0.10,
         // Wider gaps around the series letter keep the three fields legible.
-        groupAfter: {2: 0.55, 3: 0.55},
+        groupAfter: {
+          code.length: 0.55,
+          code.length + plate.letter.length: 0.55,
+        },
       );
       return;
     }
@@ -801,37 +805,60 @@ class _PlatePainter extends CustomPainter {
     final top = spec.rows[0];
     final bottom = spec.rows[1];
 
+    // A shrunk row closes up towards the other, so two overlong rows still
+    // read as one block instead of drifting apart.
     _drawGlyphRun(
       canvas,
-      plate.governorate.codeText,
+      plate.governorate?.codeText ?? '',
       cap: top.cap,
       top: top.top,
       left: spec.contentLeft,
       right: spec.contentRight,
       align: _RunAlign.left,
       tracking: 0.06,
+      settle: 1,
     );
-    _drawGlyphRun(
-      canvas,
-      plate.letter,
-      cap: top.cap,
-      top: top.top,
-      left: spec.contentLeft,
-      // The letter sits inboard of the serial's right edge on a real plate.
-      right: spec.contentRight - (spec.contentRight - spec.contentLeft) * 0.13,
-      align: _RunAlign.right,
-      tracking: 0,
-    );
-    _drawGlyphRun(
-      canvas,
-      plate.serial,
-      cap: bottom.cap,
-      top: bottom.top,
-      left: spec.contentLeft,
-      right: spec.contentRight,
-      align: _RunAlign.center,
-      tracking: 0.06,
-    );
+    double letter({double maxCap = double.infinity, bool measure = false}) =>
+        _drawGlyphRun(
+          canvas,
+          plate.letter,
+          cap: top.cap,
+          top: top.top,
+          left: spec.contentLeft,
+          // The letter sits inboard of the serial's right edge on a real plate.
+          right:
+              spec.contentRight - (spec.contentRight - spec.contentLeft) * 0.13,
+          align: _RunAlign.right,
+          tracking: 0,
+          settle: 1,
+          maxCap: maxCap,
+          measure: measure,
+        );
+    double serial({double maxCap = double.infinity, bool measure = false}) =>
+        _drawGlyphRun(
+          canvas,
+          plate.serial,
+          cap: bottom.cap,
+          top: bottom.top,
+          left: spec.contentLeft,
+          right: spec.contentRight,
+          align: _RunAlign.center,
+          tracking: 0.06,
+          settle: 0,
+          maxCap: maxCap,
+          measure: measure,
+        );
+
+    // When both rows overflow they also share one size, rather than each
+    // shrinking by however much its own slot happens to demand.
+    final letterCap = letter(measure: true);
+    final serialCap = serial(measure: true);
+    final shared =
+        letterCap < top.cap && serialCap < bottom.cap
+            ? math.min(letterCap, serialCap)
+            : double.infinity;
+    letter(maxCap: shared);
+    serial(maxCap: shared);
   }
 
   /// Pre-2024 plate: Eastern-Arabic serial with an Arabic series letter, and
@@ -876,7 +903,7 @@ class _PlatePainter extends CustomPainter {
       direction: TextDirection.rtl,
     );
     final governorate = _textPainter(
-      plate.governorate.arabicName,
+      plate.governorate?.arabicName ?? '',
       fontSize: 17,
       color: ink,
       weight: FontWeight.w700,
@@ -901,7 +928,9 @@ class _PlatePainter extends CustomPainter {
   }
 
   /// Lays out [text] as a single stroked path and embosses it in one pass.
-  void _drawGlyphRun(
+  /// Returns the cap height it drew at; [maxCap] shrinks it further, and
+  /// [measure] returns that height without drawing.
+  double _drawGlyphRun(
     Canvas canvas,
     String text, {
     required double cap,
@@ -911,17 +940,40 @@ class _PlatePainter extends CustomPainter {
     required _RunAlign align,
     required double tracking,
     Map<int, double> groupAfter = const {},
+    double settle = 0.5,
+    double maxCap = double.infinity,
+    bool measure = false,
   }) {
-    if (text.isEmpty) return;
+    if (text.isEmpty) return cap;
     final scale = cap / PlateTypeface.cap;
     final trackingMm = tracking * cap;
+    final ink = _isBack ? _darken(_backMetal, 0.10) : palette.fieldInk;
+
+    // The face is digits and A–Z only. Anything else — an Arabic series
+    // letter — is set from the font, which is measured rather than given the
+    // face's fixed slot: س or ط is far wider than a digit.
+    TextPainter fontFace(String char, double size) => _textPainter(
+      char,
+      fontSize: size,
+      color: ink,
+      weight: FontWeight.w800,
+      family: 'Almarai',
+      direction: TextDirection.rtl,
+    );
 
     // Advance table, including any extra gaps between logical groups.
     final chars = text.split('');
+    final advances = [
+      for (final char in chars)
+        PlateTypeface.glyph(char) == null
+            // Padded by the face's own sidebearings, so letters never touch.
+            ? fontFace(char, cap).width + cap * 0.18
+            : PlateTypeface.advanceOf(char) * scale,
+    ];
     final gaps = <double>[];
     var runWidth = 0.0;
     for (var i = 0; i < chars.length; i++) {
-      runWidth += PlateTypeface.advanceOf(chars[i]) * scale;
+      runWidth += advances[i];
       if (i < chars.length - 1) {
         final gap = trackingMm + (groupAfter[i + 1] ?? 0) * cap;
         gaps.add(gap);
@@ -932,7 +984,11 @@ class _PlatePainter extends CustomPainter {
     // Shrink to fit rather than overflow the field — a nine-digit serial is
     // invalid, but a wrong plate must never bleed over the frame.
     final available = right - left;
-    final fit = runWidth > available ? available / runWidth : 1.0;
+    final fit = math.min(
+      runWidth > available ? available / runWidth : 1.0,
+      maxCap / cap,
+    );
+    if (measure) return cap * fit;
     final effectiveScale = scale * fit;
     final effectiveWidth = runWidth * fit;
 
@@ -941,14 +997,14 @@ class _PlatePainter extends CustomPainter {
       _RunAlign.right => right - effectiveWidth,
       _RunAlign.center => left + (available - effectiveWidth) / 2,
     };
-    // Keep the row optically centred on its box when it was shrunk.
-    final startY = top + (cap - cap * fit) / 2;
+    // Where a shrunk row sits in its box: 0 top, 0.5 centred, 1 bottom.
+    final startY = top + (cap - cap * fit) * settle;
 
     final combined = Path();
     var x = startX;
     for (var i = 0; i < chars.length; i++) {
       final glyph = PlateTypeface.glyph(chars[i]);
-      final advance = PlateTypeface.advanceOf(chars[i]) * effectiveScale;
+      final advance = advances[i] * fit;
       if (glyph != null) {
         combined.addPath(
           glyph.transform(
@@ -959,17 +1015,24 @@ class _PlatePainter extends CustomPainter {
           ),
           Offset.zero,
         );
+      } else {
+        final face = fontFace(chars[i], cap * fit);
+        _embossText(
+          canvas,
+          face,
+          Offset(
+            x + (advance - face.width) / 2,
+            startY + (cap * fit - face.height) / 2,
+          ),
+          ink,
+        );
       }
       x += advance;
       if (i < gaps.length) x += gaps[i] * fit;
     }
 
-    _emboss(
-      canvas,
-      combined,
-      PlateTypeface.stroke * effectiveScale,
-      _isBack ? _darken(_backMetal, 0.10) : palette.fieldInk,
-    );
+    _emboss(canvas, combined, PlateTypeface.stroke * effectiveScale, ink);
+    return cap * fit;
   }
 
   /// Four-layer relief: contact shadow, extruded wall, lit edge, painted face.

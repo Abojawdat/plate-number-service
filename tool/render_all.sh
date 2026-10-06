@@ -50,6 +50,7 @@ SHOTS=(
   "03 every format|03_formats"
   "04 size ladder|04_sizes"
   "05 typeface|05_typeface"
+  "07 character set|07_character_set"
 )
 
 OUT="${PLATE_RENDER_OUT:-render}"

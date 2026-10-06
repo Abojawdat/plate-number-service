@@ -245,6 +245,50 @@ void main() {
       ),
     );
   });
+
+  // Every character a registration can carry, stamped by the real painter.
+  // Latin and digits on the one-row blank; the 28 Arabic letters split over
+  // the two rows of the car blank so they stay large. Arabic runs are
+  // reversed so they read right to left.
+  testWidgets('07 character set', timeout: Timeout.none, (tester) async {
+    tester.view.physicalSize = const Size(2600, 2600);
+    tester.view.devicePixelRatio = 1;
+
+    String rtl(String s) => s.split('').reversed.join();
+    IraqiLicensePlate row(String text) => IraqiLicensePlate(
+      plate: IraqiPlate(
+        serial: text,
+        letter: '',
+        format: PlateFormat.modernLong,
+      ),
+      width: 1500,
+    );
+
+    await _shoot(
+      tester,
+      '07_character_set',
+      Container(
+        color: const Color(0xFF2B3242),
+        padding: const EdgeInsets.all(36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            row('ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+            const SizedBox(height: 30),
+            IraqiLicensePlate(
+              plate: IraqiPlate(
+                letter: rtl('ابتثجحخدذرزسش'),
+                serial: rtl('صضطظعغفقكلمنهوي'),
+              ),
+              width: 1500,
+            ),
+            const SizedBox(height: 30),
+            row('0123456789'),
+          ],
+        ),
+      ),
+    );
+  });
 }
 
 /// Draws the whole vector face on a grid, with each glyph's advance box in red

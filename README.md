@@ -28,6 +28,12 @@ runs on all six platforms.
 The reverse is the same registration stamped through the aluminium: mirrored,
 concave, in bare unpainted metal.</em></p>
 
+![Every Latin letter, every Arabic letter and every digit, stamped by the package](render/07_character_set.png)
+
+<p align="center"><em>Every character a plate can carry: <code>A–Z</code>, the
+Arabic alphabet and <code>0–9</code>. An Arabic letter is drawn as itself —
+never swapped for a Latin one.</em></p>
+
 ---
 
 ## Install
@@ -40,7 +46,7 @@ Or by hand:
 
 ```yaml
 dependencies:
-  iraqi_license_plate: ^0.1.1
+  iraqi_license_plate: ^0.2.0
 ```
 
 Then:
@@ -86,6 +92,12 @@ if (!plate.isValid) {
 Eastern-Arabic digits (`١١ A ٧٠٦٣٤`). It returns `null` rather than throwing, so
 you can fall back to showing the raw string when a backend sends something odd.
 
+It also reads Arabic series letters (`12456 ز`, `ز 12456`, `11 ز 12456`) — any
+Arabic letter, not only the 17 the old system used — and keeps them exactly as
+written. A plate with an Arabic letter defaults to the legacy blank. Old-style
+strings carry no governorate code, so pass `governorate:` if you know it;
+without one the plate still draws, just without the code or governorate name.
+
 <p align="center">
   <img src="art/anatomy.svg" width="100%"
        alt="Every spelling tryParse accepts, and the three fields of an Iraqi registration">
@@ -104,7 +116,8 @@ instead of crashing the screen.
 ```dart
 Widget plateFor(Map<String, dynamic> driver) {
   final plate = IraqiPlate.tryParse(
-    driver['plate_number'] as String,          // '11 A 70634' or '١١ A ٧٠٦٣٤'
+    driver['plate_number'] as String,          // '11 A 70634', '١١ A ٧٠٦٣٤', '12456 ز'
+    governorate: IraqGovernorate.baghdad,      // only used when there is no code
     category: PlateCategory.publicHire,        // a taxi
   );
 
@@ -383,6 +396,8 @@ up in (`private`, `publicHire`) — handy for ride-hailing validation.
 `PlateSeries` maps the 17 Arabic letters of the old system to their Latin
 equivalents: ا→A، ب→B، ج→J، د→D، ر→R، س→S، ط→T، ف→F، ك→K، م→M، ن→N، هـ→H،
 ى→E، ق→Q، ل→L، و→W، ز→Z. `PlateSeries.fromLatin('B')` goes the other way.
+The mapping is only used to draw a Latin letter on the legacy blank; an Arabic
+letter you pass in is never converted, whether or not it is in this list.
 
 ---
 
@@ -401,7 +416,8 @@ equivalents: ا→A، ب→B، ج→J، د→D، ر→R، س→S، ط→T، ف�
 
 ### `IraqiPlate`
 
-`governorate` · `letter` · `serial` · `category` · `format`
+`governorate` (nullable) · `letter` (Latin or Arabic) · `serial` · `category` ·
+`format`
 
 - `formatted` → `'11 A 70634'`
 - `bandText` → `'IRQ'` or `'KR'`
@@ -462,9 +478,10 @@ merges the band with the rolled rim and the border stops reading as a border.
 - **Repaints.** The painter is `isComplex: true` / `willChange: false` and only
   repaints when the plate actually changes. If you animate it every frame (the
   3D viewer does), keep it to one on screen.
-- **Legacy Arabic text needs a font with Arabic coverage.** The modern formats
-  are pure vector and need nothing; the `legacy` blank and the flag's takbir
-  render through `TextPainter` and fall back to the platform font.
+- **Arabic text needs a font with Arabic coverage.** Latin letters and digits
+  are pure vector and need nothing; the `legacy` blank, an Arabic series letter
+  on any blank, and the flag's takbir render through `TextPainter` and fall
+  back to the platform font.
 - **Invalid input degrades, it does not throw.** A serial too long for the field
   is shrunk to fit rather than allowed to bleed over the frame, so a bad plate
   looks wrong rather than breaking the layout.
@@ -584,6 +601,11 @@ IraqiLicensePlate(
 `tryParse` تقبل `11 A 70634` و `11A70634` و `11-A-70634` والأرقام العربية
 `١١ A ٧٠٦٣٤`، وتُرجع `null` بدل أن ترمي استثناء — فإذا أرسل الخادم قيمة غير
 صحيحة تعرض النص كما هو بدل أن ينهار التطبيق.
+
+وتقبل أيضاً الحرف العربي (`12456 ز` أو `ز 12456`) — أي حرف عربي، لا الحروف
+السبعة عشر القديمة فقط — وترسمه كما هو دون تحويله إلى حرف لاتيني. وإذا لم يكن
+في النص كود محافظة فمرّر `governorate:`، وبدونها تُرسم اللوحة أيضاً لكن بلا
+كود أو اسم محافظة.
 
 ```dart
 final plate = IraqiPlate.tryParse(driver['plate_number'] as String);

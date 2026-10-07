@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.2
+
+- A live demo: every plate, format and category now runs in the browser at
+  https://abojawdat.github.io/plate-number-service/, linked from the README and
+  from the package page.
+- The example app is a showcase rather than the bare gallery: the 3D plate up
+  front, a tab with every shipped style, and one that parses whatever you type,
+  in English and Arabic.
+- A package icon, and a README that opens with it.
+- Nothing in the package API changed.
+
 ## 0.2.1
 
 - Fix: on the legacy blank a wide Arabic letter such as ض or ت beside a four-

@@ -3,7 +3,7 @@ description: >-
   Photoreal Iraqi vehicle registration plates for Flutter — car, motorcycle,
   European and legacy Arabic blanks — with the governorate and category data
   model behind them.
-version: 0.2.1
+version: 0.2.2
 
 homepage: https://abojawdat.github.io/plate-number-service/
 repository: https://github.com/Abojawdat/plate-number-service

@@ -18,6 +18,14 @@ jobs:
     name: Publish
     runs-on: ubuntu-latest
 
+    # pub.dev only accepts a publish that comes from this environment; it is
+    # the one named under Admin > Automated publishing on the package page.
+    environment: pub.dev
+
+    # Without credentials `dart pub publish` waits for someone to sign in, and
+    # on a runner nobody ever does. Give up instead of sitting there for hours.
+    timeout-minutes: 15
+
     # Required for pub.dev's OIDC authentication. Without it the publish step
     # has no credentials and fails.
     permissions:
@@ -25,6 +33,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # This is the step that turns the id-token permission into a pub.dev
+      # login. It has to come before Flutter so the Flutter SDK's dart is the
+      # one left on the PATH, and pub picks the token up from there.
+      - uses: dart-lang/setup-dart@v1
 
       - uses: subosito/flutter-action@v2
         with:

@@ -15,6 +15,11 @@
   <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-blue.svg"></a>
   <img alt="platforms" src="https://img.shields.io/badge/platforms-android%20%7C%20ios%20%7C%20web%20%7C%20macos%20%7C%20windows%20%7C%20linux-lightgrey.svg">
   <a href="https://github.com/Abojawdat"><img alt="by Abojawdat" src="https://img.shields.io/badge/by-Abojawdat-C8102E.svg"></a>
+  <a href="https://abojawdat.github.io/plate-number-service/"><img alt="live demo" src="https://img.shields.io/badge/live%20demo-try%20it%20in%20the%20browser-1B7F44.svg"></a>
+</p>
+
+<p align="center">
+  <a href="https://abojawdat.github.io/plate-number-service/"><strong>▶ Try every plate live in your browser</strong></a>
 </p>
 
 Every plate is drawn by a single `CustomPainter` against the real blank
@@ -578,6 +583,8 @@ does not.
 كل لوحة مرسومة بالكامل داخل `CustomPainter` واحد، بأبعاد اللوحة الحقيقية
 بالمليمتر. لا صور، ولا خطوط، ولا إنترنت، ولا إضافات — الحزمة لا تعتمد على أي
 شيء غير Flutter نفسه، وتعمل على المنصات الست جميعها.
+
+[جرّب كل اللوحات مباشرة في المتصفح](https://abojawdat.github.io/plate-number-service/)
 
 ### التثبيت
 

@@ -5,6 +5,7 @@ description: >-
   model behind them.
 version: 0.2.1
 
+homepage: https://abojawdat.github.io/plate-number-service/
 repository: https://github.com/Abojawdat/plate-number-service
 issue_tracker: https://github.com/Abojawdat/plate-number-service/issues
 

@@ -1,7 +1,9 @@
 <p align="center">
-  <img src="art/banner.svg" width="100%"
-       alt="iraqi_license_plate — an Iraqi plate stamping itself, character by character">
+  <img src="art/icon.svg" width="140"
+       alt="iraqi_license_plate icon — an Iraqi car plate, mid-spin">
 </p>
+
+<h1 align="center">iraqi_license_plate</h1>
 
 <p align="center">
   <strong>لوحات المركبات العراقية لتطبيقات Flutter</strong><br>
@@ -11,16 +13,28 @@
 </p>
 
 <p align="center">
-  <a href="https://pub.dev/packages/iraqi_license_plate"><img alt="pub package" src="https://img.shields.io/pub/v/iraqi_license_plate.svg"></a>
-  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-blue.svg"></a>
-  <img alt="platforms" src="https://img.shields.io/badge/platforms-android%20%7C%20ios%20%7C%20web%20%7C%20macos%20%7C%20windows%20%7C%20linux-lightgrey.svg">
-  <a href="https://github.com/Abojawdat"><img alt="by Abojawdat" src="https://img.shields.io/badge/by-Abojawdat-C8102E.svg"></a>
-  <a href="https://abojawdat.github.io/plate-number-service/"><img alt="live demo" src="https://img.shields.io/badge/live%20demo-try%20it%20in%20the%20browser-1B7F44.svg"></a>
+  Built by <a href="https://github.com/Abojawdat"><strong>Mohammad Othman (Abojawdat)</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://abojawdat.github.io/plate-number-service/"><strong>▶ Try every plate live in your browser</strong></a>
+  <a href="https://pub.dev/packages/iraqi_license_plate"><img alt="pub package" src="https://img.shields.io/pub/v/iraqi_license_plate.svg"></a>
+  <a href="https://abojawdat.github.io/plate-number-service/"><img alt="live demo" src="https://img.shields.io/badge/live%20demo-try%20it%20in%20the%20browser-1B7F44.svg"></a>
+  <img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-zero-2ea44f.svg">
+  <img alt="platforms" src="https://img.shields.io/badge/platforms-android%20%7C%20ios%20%7C%20web%20%7C%20macos%20%7C%20windows%20%7C%20linux-lightgrey.svg">
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-blue.svg"></a>
+  <a href="https://github.com/Abojawdat"><img alt="by Abojawdat" src="https://img.shields.io/badge/by-Abojawdat-C8102E.svg"></a>
 </p>
+
+<p align="center">
+  <img src="art/banner.svg" width="100%"
+       alt="iraqi_license_plate — an Iraqi plate stamping itself, character by character">
+</p>
+
+<p align="center">
+  <a href="https://abojawdat.github.io/plate-number-service/"><strong>▶ Try the live demo</strong></a>
+</p>
+
+---
 
 Every plate is drawn by a single `CustomPainter` against the real blank
 dimensions in millimetres. No images, no fonts, no network, no plugins. The
